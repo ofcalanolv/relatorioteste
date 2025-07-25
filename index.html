@@ -92,27 +92,6 @@
         }
         .camera-controls button:hover { background: #0056b3; }
 
-        /* Document Photo Button */
-        .btn-documento { /* General style for document photo button */
-            background: #6c757d; /* Grey color for document photo */
-            color: white;
-            padding: 10px;
-            width: 100%;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-documento:hover {
-            background: #5a6268;
-        }
-
-
         /* Taskbar Styles */
         .taskbar {
             position: fixed;
@@ -282,18 +261,6 @@
             <input type="text" id="identidade" placeholder="Identidade">
             <input type="text" id="cpf" placeholder="CPF" oninput="formatarCPF(this)">
 
-            <button class="btn-documento" onclick="tirarFotoDocumento('agente')">
-                <i class="fas fa-id-card"></i>
-                <span>Fotografar Documento (Opcional)</span>
-            </button>
-            <video id="videoDocumento" width="100%" autoplay style="display:none;" playsinline></video>
-            <div class="camera-controls">
-                <button id="captureDocBtn" style="display:none;" onclick="capturarImagemDocumento('agente')">Capturar Imagem do Documento</button>
-                <button id="stopCameraDocBtn" style="display:none; background: #dc3545;" onclick="pararCameraDocumento('agente')">Fechar Câmera do Documento</button>
-            </div>
-            <div id="fotosDocumentoPreview"></div>
-
-
             <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
             <div class="inline-fields">
                 <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
@@ -301,7 +268,7 @@
             </div>
             <img id="mapPreview" alt="Mapa da Localização">
 
-            <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" oninput="formatarDataNascimento(this)" onchange="calcularIdade()">
+            <input type="tel" id="dataNascimento" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this)" onchange="calcularIdade()">
             <input type="text" id="idade" placeholder="Idade" readonly>
 
             <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
@@ -375,19 +342,12 @@
             <input type="text" id="identidade_tecnico" placeholder="Identidade">
             <input type="text" id="cpf_tecnico" placeholder="CPF" oninput="formatarCPF(this)">
 
-            <button class="btn-documento" onclick="tirarFotoDocumento('tecnico')">
-                <i class="fas fa-id-card"></i>
-                <span>Fotografar Documento (Opcional)</span>
-            </button>
-            <div id="fotosDocumentoPreviewTecnico"></div>
-
-
             <input type="text" id="endereco_tecnico" placeholder="Endereço (coletado automaticamente)" readonly>
             <div class="inline-fields">
                 <input type="text" id="numero_tecnico" placeholder="Número" oninput="atualizarEnderecoCompleto('tecnico')">
                 <input type="text" id="complemento_tecnico" placeholder="Complemento" oninput="atualizarEnderecoCompleto('tecnico')">
             </div>
-            <div id="mapPreviewTecnico" style="display:none;"></div> <input type="text" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" oninput="formatarDataNascimento(this)" onchange="calcularIdade('tecnico')">
+            <div id="mapPreviewTecnico" style="display:none;"></div> <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this)" onchange="calcularIdade('tecnico')">
             <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
 
             <textarea id="historico_tecnico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('tecnico')"></textarea>
@@ -469,12 +429,12 @@
     </div>
 
     <script>
+        // Remova ou substitua esta chave com a sua chave real do Google Maps API
         const Maps_API_KEY = "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E"; 
 
         // Dados para Agente de Campo
         let dadosAgenteCampo = {
             fotos: [], // Fotos do usuário
-            fotosDocumento: [], // Fotos do documento
             coordenadas: "",
             enderecoBaseDetalhes: {},
             codigoAtual: "",
@@ -500,7 +460,6 @@
         // Dados para Técnico (inicialmente duplicados para teste)
         let dadosTecnico = {
             fotos: [], 
-            fotosDocumento: [], 
             coordenadas: "",
             enderecoBaseDetalhes: {},
             codigoAtual: "",
@@ -524,6 +483,7 @@
         };
 
         let activeTab = 'agenteCampo'; // Controla qual aba está ativa
+        let cameraStream = null; // Stream da câmera principal
 
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
@@ -555,11 +515,9 @@
                 if (idBase === 'outrosDemandaContainer') return document.getElementById('outrosDemandaContainerTecnico');
                 if (idBase === 'outrosDemandaInput') return document.getElementById('outrosDemandaInputTecnico');
                 if (idBase === 'fotosPreview') return document.getElementById('fotosPreviewTecnico');
-                if (idBase === 'fotosDocumentoPreview') return document.getElementById('fotosDocumentoPreviewTecnico');
                 if (idBase === 'gps') return document.getElementById('gpsTecnico');
                 // Campos de camera e mapPreview são compartilhados no HTML
-                if (idBase === 'videoDocumento' || idBase === 'captureDocBtn' || idBase === 'stopCameraDocBtn' ||
-                    idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn' ||
+                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn' ||
                     idBase === 'mapPreview') {
                     return document.getElementById(idBase);
                 }
@@ -596,9 +554,8 @@
             gerarCodigoAtendimento(); // Gera um novo código para a aba ativa (ou exibe o existente)
             document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri;
 
-            // Para parar as câmeras se o usuário mudar de aba com uma câmera aberta
+            // Para parar a câmera se o usuário mudar de aba com a câmera aberta
             pararCamera('global'); 
-            pararCameraDocumento('global');
         }
 
         function gerarCodigoAtendimento() {
@@ -773,11 +730,6 @@
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
 
-            // Se a câmera do documento estiver ativa, primeiro pare-a
-            if (cameraDocumentoStream && cameraDocumentoStream.active) {
-                pararCameraDocumento('global');
-            }
-
             if (cameraStream && cameraStream.active) {
                 video.style.display = "block";
                 captureBtn.style.display = "block";
@@ -795,7 +747,7 @@
                 video.play();
             } catch (err) {
                 console.error("Erro ao acessar a câmera principal:", err);
-                alert("Não foi possível acessar a câmera principal. Verifique as permissões do navegador ou se a câmera está em uso.");
+                alert("Não foi possível acessar a câmera. Verifique as permissões do navegador ou se a câmera está em uso.");
                 video.style.display = "none";
                 captureBtn.style.display = "none";
                 stopCameraBtn.style.display = "none";
@@ -820,7 +772,7 @@
         function capturarImagem(tabContext = 'agente') {
             const video = document.getElementById('video');
             if (!video.srcObject) { 
-                alert("Câmera principal não está ativa para captura.");
+                alert("Câmera não está ativa para captura.");
                 return;
             }
 
@@ -844,90 +796,6 @@
             removeBtn.classList.add('remove-btn');
             removeBtn.onclick = () => {
                 activeData.fotos = activeData.fotos.filter(f => f !== fotoBase64);
-                container.remove();
-            };
-            container.appendChild(img);
-            container.appendChild(removeBtn);
-            previewDiv.appendChild(container);
-        }
-
-        // --- Novas Funções para a Câmera de Documento ---
-        async function tirarFotoDocumento(tabContext = 'agente') {
-            const videoDocumento = document.getElementById('videoDocumento');
-            const captureDocBtn = document.getElementById('captureDocBtn');
-            const stopCameraDocBtn = document.getElementById('stopCameraDocBtn');
-
-            // Se a câmera principal estiver ativa, primeiro pare-a
-            if (cameraStream && cameraStream.active) {
-                pararCamera('global');
-            }
-
-            if (cameraDocumentoStream && cameraDocumentoStream.active) {
-                videoDocumento.style.display = "block";
-                captureDocBtn.style.display = "block";
-                stopCameraDocBtn.style.display = "block";
-                return;
-            }
-
-            try {
-                videoDocumento.setAttribute('playsinline', ''); 
-                cameraDocumentoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                videoDocumento.srcObject = cameraDocumentoStream;
-                videoDocumento.style.display = "block";
-                captureDocBtn.style.display = "block"; 
-                stopCameraDocBtn.style.display = "block";
-                videoDocumento.play();
-            } catch (err) {
-                console.error("Erro ao acessar a câmera do documento:", err);
-                alert("Não foi possível acessar a câmera do documento. Verifique as permissões do navegador ou se a câmera está em uso.");
-                videoDocumento.style.display = "none";
-                captureDocBtn.style.display = "none";
-                stopCameraDocBtn.style.display = "none";
-            }
-        }
-
-        function pararCameraDocumento(tabContext = 'global') {
-            const videoDocumento = document.getElementById('videoDocumento');
-            const captureDocBtn = document.getElementById('captureDocBtn');
-            const stopCameraDocBtn = document.getElementById('stopCameraDocBtn');
-            if (cameraDocumentoStream) {
-                cameraDocumentoStream.getTracks().forEach(track => track.stop());
-                videoDocumento.srcObject = null;
-                cameraDocumentoStream = null;
-                videoDocumento.pause();
-            }
-            videoDocumento.style.display = "none";
-            captureDocBtn.style.display = "none";
-            stopCameraDocBtn.style.display = "none";
-        }
-
-        function capturarImagemDocumento(tabContext = 'agente') {
-            const videoDocumento = document.getElementById('videoDocumento');
-            if (!videoDocumento.srcObject) {
-                alert("Câmera do documento não está ativa para captura.");
-                return;
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = videoDocumento.videoWidth;
-            canvas.height = videoDocumento.videoHeight;
-            canvas.getContext('2d').drawImage(videoDocumento, 0, 0);
-            const fotoDocumentoBase64 = canvas.toDataURL("image/jpeg", 0.8);
-
-            const activeData = getActiveData();
-            activeData.fotosDocumento.push(fotoDocumentoBase64);
-
-            const previewDiv = getElementByIdForActiveTab('fotosDocumentoPreview');
-            const container = document.createElement('div');
-            container.classList.add('foto-container');
-            const img = document.createElement('img');
-            img.src = fotoDocumentoBase64;
-            img.classList.add('foto-thumb');
-            const removeBtn = document.createElement('button');
-            removeBtn.innerText = "X";
-            removeBtn.classList.add('remove-btn');
-            removeBtn.onclick = () => {
-                activeData.fotosDocumento = activeData.fotosDocumento.filter(f => f !== fotoDocumentoBase64);
                 container.remove();
             };
             container.appendChild(img);
@@ -1187,60 +1055,6 @@
             doc.text(`Coordenadas: ${activeData.coordenadas || "Não coletadas"}`, 10, yPos);
             yPos += 15;
 
-            // Fotos do Documento (Opcional)
-            if (activeData.fotosDocumento.length > 0) {
-                doc.setFontSize(14);
-                doc.text(`Fotos do Documento:`, 10, yPos);
-                yPos += 8;
-                doc.setFontSize(12);
-
-                const imgWidthDoc = 60; 
-                const imgHeightDoc = (imgWidthDoc / 4) * 3; 
-                const imgMarginDoc = 5; 
-                const startXDoc = 10; 
-                let currentXDoc = startXDoc;
-                let imagesInRowDoc = 0;
-
-                for (let i = 0; i < activeData.fotosDocumento.length; i++) {
-                    if (imagesInRowDoc === 3 || (yPos + imgHeightDoc + 10 > doc.internal.pageSize.height - 10 && imagesInRowDoc > 0)) {
-                        doc.addPage();
-                        yPos = 20; 
-                        currentXDoc = startXDoc; 
-                        imagesInRowDoc = 0; 
-                        addCustomFont(doc); 
-                    } else if (yPos + imgHeightDoc + 10 > doc.internal.pageSize.height - 10 && imagesInRowDoc === 0) {
-                         doc.addPage();
-                         yPos = 20;
-                         currentXDoc = startXDoc;
-                         imagesInRowDoc = 0;
-                         addCustomFont(doc);
-                    }
-
-                    try {
-                        const resizedFotoDoc = await resizeImage(activeData.fotosDocumento[i], 800); 
-                        if (resizedFotoDoc) {
-                            doc.addImage(resizedFotoDoc, 'JPEG', currentXDoc, yPos, imgWidthDoc, imgHeightDoc);
-                            currentXDoc += imgWidthDoc + imgMarginDoc; 
-                            imagesInRowDoc++;
-
-                            if (imagesInRowDoc === 3) { 
-                                yPos += imgHeightDoc + imgMarginDoc;
-                                currentXDoc = startXDoc;
-                                imagesInRowDoc = 0;
-                            }
-                        } else {
-                             console.warn(`Could not process document photo ${i + 1} for PDF.`);
-                        }
-                    } catch (imgError) {
-                        console.error("Erro ao adicionar imagem do documento ao PDF:", imgError);
-                    }
-                }
-                yPos += (imagesInRowDoc > 0 ? (imgHeightDoc + imgMarginDoc) : 0); 
-                if (imagesInRowDoc === 0 && yPos > 20) yPos -= (imgHeightDoc + imgMarginDoc); 
-                yPos += 5; 
-            }
-
-
             if (activeData.mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
                  try {
                     const response = await fetch(activeData.mapImageUrl);
@@ -1385,11 +1199,8 @@
             
             activeData.fotos = [];
             getElementByIdForActiveTab('fotosPreview').innerHTML = '';
-            activeData.fotosDocumento = []; 
-            getElementByIdForActiveTab('fotosDocumentoPreview').innerHTML = ''; 
 
             pararCamera('global'); 
-            pararCameraDocumento('global');
 
             activeData.coordenadas = "";
             activeData.enderecoBaseDetalhes = {};
