@@ -5,7 +5,7 @@
     <title>Gerador de Relatório</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.com/cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 10px; background: #f5f5f5; }
         h2, h3 { text-align: center; }
@@ -82,13 +82,16 @@
     </div>
 
     <script>
+        // *** SUA CHAVE DE API DO GOOGLE FOI INSERIDA AQUI ***
+        const Maps_API_KEY = "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E"; 
+        // Lembre-se de restringir essa chave no Google Cloud Console!
+
         let fotos = [];
         let coordenadas = "";
         let enderecoBaseDetalhes = {};
         let codigoAtual = "";
         let cameraStream = null;
-        let mapDisplayImageUrl = ""; // URL for the map image to DISPLAY in HTML
-        let mapPdfImageUrl = ""; // URL for the static map image to embed in PDF
+        let mapImageUrl = ""; // To store the Google Static Maps URL
 
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
@@ -215,22 +218,18 @@
             
             let partes = [];
             
-            // Prioriza o nome da rua do Nominatim, se houver
             if (enderecoBaseDetalhes.road) {
                 partes.push(enderecoBaseDetalhes.road);
             }
             
-            // Adiciona o número
             if (numero) {
                 partes.push(numero);
             }
 
-            // Adiciona o complemento
             if (complemento) {
                 partes.push(complemento);
             }
 
-            // Adiciona o restante das informações do Nominatim, se houverem e ainda não foram incluídas
             const partesEndBase = [
                 enderecoBaseDetalhes.suburb || enderecoBaseDetalhes.neighbourhood,
                 enderecoBaseDetalhes.city || enderecoBaseDetalhes.town || enderecoBaseDetalhes.village,
@@ -250,8 +249,13 @@
             document.getElementById('gps').innerText = "Coletando localização...";
             const mapPreview = document.getElementById('mapPreview');
             mapPreview.style.display = 'none';
-            mapDisplayImageUrl = ""; 
-            mapPdfImageUrl = "";
+            mapImageUrl = ""; 
+
+            if (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
+                alert("Por favor, configure sua CHAVE DE API DO GOOGLE MAPS no código para que o mapa funcione.");
+                document.getElementById('gps').innerText = "Erro: API Key do Google não configurada.";
+                return;
+            }
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -261,37 +265,31 @@
                     document.getElementById('gps').innerText = coordenadas;
 
                     try {
-                        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
-                        const response = await fetch(url);
-                        const data = await response.json();
-                        enderecoBaseDetalhes = data.address || {};
+                        // Using Nominatim for address details
+                        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
+                        const nominatimResponse = await fetch(nominatimUrl);
+                        const nominatimData = await nominatimResponse.json();
+                        enderecoBaseDetalhes = nominatimData.address || {};
 
                         atualizarEnderecoCompleto();
 
-                        const zoom = 16; // Aumentei o zoom um pouco para melhor visibilidade
-                        // Calculate tile coordinates for display (OpenStreetMap tile system)
-                        // This is a common way to get a single map tile for display
-                        const n = Math.pow(2, zoom);
-                        const tileX = Math.floor(n * ((lon + 180) / 360));
-                        const tileY = Math.floor(n * (1 - (Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI)) / 2);
+                        // Using Google Static Maps API for the map image
+                        const zoom = 15;
+                        const size = "400x200"; // Max size for free tier is 640x640, or 1280x1280 with scale=2
+                        const marker = `markers=color:red%7Clabel:P%7C${lat},${lon}`; // Red marker labeled P
                         
-                        // URL for a single map tile (display only)
-                        mapDisplayImageUrl = `https://tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
-                        mapPreview.src = mapDisplayImageUrl;
+                        mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=${zoom}&size=${size}&${marker}&key=${Maps_API_KEY}`;
+                        
+                        mapPreview.src = mapImageUrl;
                         mapPreview.style.display = 'block';
 
-                        // URL for the static map image for PDF (same as before, but ensure it's loaded only when PDF is generated)
-                        const staticMapSize = "400x200"; // Size for PDF
-                        mapPdfImageUrl = `https://static.openstreetmap.org/staticmap/osm_basic_osm_contributed.png?mlat=${lat}&mlon=${lon}&zoom=${zoom}&size=${staticMapSize}&marker=dot-red`;
-
-
                     } catch (fetchError) {
-                        console.error("Erro ao obter endereço do Nominatim:", fetchError);
+                        console.error("Erro ao obter endereço ou mapa:", fetchError);
                         document.getElementById('endereco').value = "Não foi possível obter o endereço detalhado.";
                         enderecoBaseDetalhes = {};
                         mapPreview.style.display = 'none';
-                        mapDisplayImageUrl = "";
-                        mapPdfImageUrl = "";
+                        mapImageUrl = "";
+                        alert("Erro ao carregar endereço ou mapa. Verifique a API Key do Google e a conexão.");
                     }
                 }, (geoError) => {
                     console.error("Erro de geolocalização:", geoError);
@@ -307,16 +305,14 @@
                     document.getElementById('gps').innerText = errorMessage;
                     enderecoBaseDetalhes = {};
                     mapPreview.style.display = 'none';
-                    mapDisplayImageUrl = "";
-                    mapPdfImageUrl = "";
+                    mapImageUrl = "";
                 });
             } else {
                 alert("Geolocalização não suportada neste navegador.");
                 document.getElementById('gps').innerText = "Geolocalização não suportada.";
                 enderecoBaseDetalhes = {};
                 mapPreview.style.display = 'none';
-                mapDisplayImageUrl = "";
-                mapPdfImageUrl = "";
+                mapImageUrl = "";
             }
         }
 
@@ -395,12 +391,10 @@
             doc.text(`Coordenadas: ${coordenadas || "Não coletadas"}`, 10, yPos);
             yPos += 15;
 
-            // Add Map Image if available
-            if (mapPdfImageUrl) {
+            // Add Map Image if available (from Google Static Maps)
+            if (mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
                  try {
-                    // Fetch the image and convert to base64 for jsPDF
-                    // This uses the "static map" URL for the PDF
-                    const response = await fetch(mapPdfImageUrl);
+                    const response = await fetch(mapImageUrl);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const blob = await response.blob();
                     const mapBase64 = await new Promise(resolve => {
@@ -422,18 +416,20 @@
                         doc.setFontSize(14);
                         doc.text(`Localização no Mapa:`, 10, yPos);
                         yPos += 8;
-                        // Use the correct MIME type for PNG
                         doc.addImage(mapBase64, 'PNG', 10, yPos, 100, 50); // Adjust map size in PDF
                         yPos += 60;
                     } else {
-                         doc.text(`(Falha ao processar mapa para PDF)`, 10, yPos);
+                         doc.text(`(Falha ao processar mapa para PDF - Base64 vazio)`, 10, yPos);
                          yPos += 10;
                     }
                 } catch (mapImgError) {
                     console.error("Erro ao adicionar imagem do mapa ao PDF:", mapImgError);
-                    doc.text(`(Erro ao carregar mapa)`, 10, yPos);
+                    doc.text(`(Erro ao carregar mapa para PDF)`, 10, yPos);
                     yPos += 10;
                 }
+            } else if (mapImageUrl && (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI")) {
+                doc.text(`(Mapa não incluído: Chave de API do Google ausente/inválida)`, 10, yPos);
+                yPos += 10;
             }
             yPos += 5;
 
@@ -494,8 +490,7 @@
 
             coordenadas = "";
             enderecoBaseDetalhes = {};
-            mapDisplayImageUrl = "";
-            mapPdfImageUrl = "";
+            mapImageUrl = ""; 
             document.getElementById('mapPreview').src = "";
             document.getElementById('mapPreview').style.display = 'none';
 
