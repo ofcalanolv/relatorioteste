@@ -210,14 +210,7 @@
         .camera-controls button#stopCameraBtn { background: var(--red-color); }
         .camera-controls button#stopCameraBtn:hover { background: #c82333; }
         
-        #cameraMessage {
-            text-align: center;
-            color: var(--red-color); /* Alerta em vermelho */
-            font-weight: bold;
-            margin-top: 10px;
-            display: none; /* Inicia oculto */
-        }
-
+        /* #cameraMessage foi removido do HTML e do CSS */
 
         /* Taskbar Styles */
         .taskbar {
@@ -492,7 +485,6 @@
             </div>
 
             <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
-            <p id="cameraMessage">Por favor, gire seu telefone no sentido horário para capturar as imagens.</p>
             <div class="camera-controls">
                 <button id="captureBtn" style="display:none;" onclick="capturarImagem('agente')">Capturar Imagem</button>
                 <button id="stopCameraBtn" style="display:none;" onclick="pararCamera('agente')">Fechar Câmera</button>
@@ -725,7 +717,7 @@
                 if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico'); // NOVO
                 
                 // Campos de camera são compartilhados no HTML
-                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn' || idBase === 'cameraMessage') {
+                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn') { // cameraMessage removido
                     return document.getElementById(idBase);
                 }
                 
@@ -1002,32 +994,29 @@
             const video = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
-            const cameraMessage = document.getElementById('cameraMessage');
+            // const cameraMessage = document.getElementById('cameraMessage'); // Removido
 
             if (cameraStream && cameraStream.active) {
                 video.style.display = "block";
                 captureBtn.style.display = "block";
                 stopCameraBtn.style.display = "block";
-                cameraMessage.style.display = "block"; // Mostrar mensagem de orientação
+                // cameraMessage.style.display = "block"; // Removido
                 return; 
             }
 
             try {
                 video.setAttribute('playsinline', ''); 
-                // Prefer landscape resolution for video stream (1280x720 ou 640x480 para 16:9 ou 4:3)
-                // Usando resolução próxima a 4:3 paisagem
                 cameraStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
-                        facingMode: 'environment', // Câmera traseira
-                        width: { ideal: 640 }, 
-                        height: { ideal: 480 }  
+                        facingMode: 'environment' // Câmera traseira
+                        // Remover width e height para deixar o navegador escolher a melhor resolução padrão
                     } 
                 });
                 video.srcObject = cameraStream;
                 video.style.display = "block";
                 captureBtn.style.display = "block"; 
                 stopCameraBtn.style.display = "block";
-                cameraMessage.style.display = "block"; // Mostrar mensagem de orientação
+                // cameraMessage.style.display = "block"; // Removido
                 video.play();
             } catch (err) {
                 console.error("Erro ao acessar a câmera principal:", err);
@@ -1035,7 +1024,7 @@
                 video.style.display = "none";
                 captureBtn.style.display = "none";
                 stopCameraBtn.style.display = "none";
-                cameraMessage.style.display = "none"; // Ocultar mensagem de orientação
+                // cameraMessage.style.display = "none"; // Removido
             }
         }
 
@@ -1043,7 +1032,7 @@
             const video = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
-            const cameraMessage = document.getElementById('cameraMessage'); // Adicionado
+            // const cameraMessage = document.getElementById('cameraMessage'); // Removido
             
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
@@ -1054,7 +1043,7 @@
             video.style.display = "none";
             captureBtn.style.display = "none";
             stopCameraBtn.style.display = "none";
-            cameraMessage.style.display = "none"; // Ocultar mensagem ao fechar
+            // cameraMessage.style.display = "none"; // Removido
         }
 
         function capturarImagem(tabContext = 'agente') {
@@ -1064,62 +1053,15 @@
                 return;
             }
 
-            const originalVideoWidth = video.videoWidth;
-            const originalVideoHeight = video.videoHeight;
-
-            // Definir o canvas para uma proporção 4:3 em paisagem (largura > altura)
-            const targetWidth = 640; // Ex: Largura final da imagem capturada
-            const targetHeight = (targetWidth / 4) * 3; // Calcula altura para 4:3
-
-            let canvas = document.createElement('canvas');
-            let ctx = canvas.getContext('2d');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
             
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-
-            // Preencher o canvas com branco (opcional, mas evita fundo preto transparente)
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Determinar a orientação do vídeo para corrigir
-            let drawX = 0;
-            let drawY = 0;
-            let drawWidth = originalVideoWidth;
-            let drawHeight = originalVideoHeight;
-
-            // Se o vídeo estiver em modo retrato (altura maior que largura)
-            if (originalVideoHeight > originalVideoWidth) {
-                // Rotacionar o canvas para que a imagem seja desenhada como paisagem
-                canvas.width = targetHeight; // A largura do canvas se torna a altura desejada
-                canvas.height = targetWidth; // A altura do canvas se torna a largura desejada
-                
-                ctx.translate(canvas.width / 2, canvas.height / 2); // Mover para o centro
-                ctx.rotate(90 * Math.PI / 180); // Girar 90 graus no sentido horário
-                
-                // Redesenhar o contexto para que (0,0) seja o novo canto superior esquerdo após a rotação
-                // e desenhar a imagem centralizada no novo canvas
-                ctx.drawImage(video, -originalVideoHeight / 2, -originalVideoWidth / 2, originalVideoHeight, originalVideoWidth); // Inverte width/height
-                
-                // Depois de desenhar, rotacionar de volta para o canvas original 4:3 paisagem
-                // e copiar a imagem. Alternativamente, criar um segundo canvas para a rotação final.
-                
-                // Uma maneira mais simples: desenhar rotacionado no canvas principal e depois pegar os pixels
-                // e desenhar em um novo canvas com as dimensões finais corretas.
-                let tempCanvas = document.createElement('canvas');
-                let tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = originalVideoHeight;
-                tempCanvas.height = originalVideoWidth;
-                tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
-                tempCtx.rotate(90 * Math.PI / 180);
-                tempCtx.drawImage(video, -originalVideoWidth / 2, -originalVideoHeight / 2, originalVideoWidth, originalVideoHeight);
-
-                // Agora, redimensionar do tempCanvas para o canvas final 4:3 paisagem
-                ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, targetWidth, targetHeight);
-
-            } else {
-                // Se o vídeo já estiver em paisagem, desenhar diretamente
-                ctx.drawImage(video, 0, 0, originalVideoWidth, originalVideoHeight, 0, 0, targetWidth, targetHeight);
-            }
+            // Definir canvas com as dimensões reais do vídeo para capturar a imagem como ela aparece
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Desenhar a imagem do vídeo no canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             const fotoBase64 = canvas.toDataURL("image/jpeg", 0.8);
 
@@ -1233,32 +1175,33 @@
             }
         }
 
-        // Renomeada e ajustada para aceitar largura de destino e manter proporção paisagem 4:3
-        async function resizeImageForPDF(base64Str, targetWidth = 400) { 
+        // Função para redimensionar imagens para o PDF, mantendo proporção
+        async function resizeImageForPDF(base64Str, maxWidth, maxHeight) {
             return new Promise((resolve) => {
                 let img = new Image();
                 img.src = base64Str;
                 img.onload = () => {
                     let canvas = document.createElement('canvas');
                     let ctx = canvas.getContext('2d');
-                    
-                    // Definir proporção paisagem 4:3
-                    const targetHeight = (targetWidth / 4) * 3; 
 
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
-                    
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate the ratio to fit within maxWidth and maxHeight
+                    let ratio = Math.min(maxWidth / width, maxHeight / height);
+
+                    // If the image is already smaller than or equal to the target size, no need to scale up
+                    if (ratio > 1) {
+                        ratio = 1; 
+                    }
+
+                    canvas.width = width * ratio;
+                    canvas.height = height * ratio;
+
                     ctx.fillStyle = "#FFFFFF"; // Fundo branco
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Centralizar a imagem no canvas, mantendo a proporção original
-                    let ratio = Math.min(targetWidth / img.width, targetHeight / img.height);
-                    let newWidth = img.width * ratio;
-                    let newHeight = img.height * ratio;
-                    let xOffset = (targetWidth - newWidth) / 2;
-                    let yOffset = (targetHeight - newHeight) / 2;
-
-                    ctx.drawImage(img, xOffset, yOffset, newWidth, newHeight);
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
                     resolve(canvas.toDataURL('image/jpeg', 0.8)); // Qualidade 80%
                 };
@@ -1476,24 +1419,24 @@
             yPos += 8;
             doc.setFontSize(12);
 
-            // Ajustes para 2 fotos por linha, maiores
-            const imgWidthPdf = 80; // Largura maior para a foto
-            const imgHeightPdf = (imgWidthPdf / 4) * 3; // Mantém proporção 4:3
-            const imgMarginPdf = 10; // Espaçamento maior entre as fotos
+            // Redimensionamento de imagem para o PDF sem forçar 4:3, mas limitando tamanho
+            const imgMaxWidthPdf = 90; // Largura máxima para a foto no PDF
+            const imgMaxHeightPdf = 90; // Altura máxima para a foto no PDF
+            const imgMarginPdf = 10; 
             const startXPdf = 10; 
-            const maxImagesPerRow = 2; // Duas fotos por linha
+            const maxImagesPerRow = 2; 
             let currentXPdf = startXPdf;
             let imagesInRowPdf = 0;
 
             for (let i = 0; i < activeData.fotos.length; i++) {
                 // Checa se precisa adicionar nova página ou nova linha
-                if (imagesInRowPdf === maxImagesPerRow || (yPos + imgHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf > 0)) {
+                if (imagesInRowPdf === maxImagesPerRow || (yPos + imgMaxHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf > 0)) {
                     doc.addPage();
                     yPos = 20; 
                     currentXPdf = startXPdf; 
                     imagesInRowPdf = 0; 
                     addCustomFont(doc); 
-                } else if (yPos + imgHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf === 0) {
+                } else if (yPos + imgMaxHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf === 0) {
                      doc.addPage();
                      yPos = 20;
                      currentXPdf = startXPdf;
@@ -1502,15 +1445,20 @@
                 }
 
                 try {
-                    // Passamos uma largura maior para o redimensionamento antes de adicionar ao PDF
-                    const resizedFoto = await resizeImageForPDF(activeData.fotos[i], 800); 
+                    // Redimensionar para as dimensões máximas no PDF
+                    const resizedFoto = await resizeImageForPDF(activeData.fotos[i], imgMaxWidthPdf, imgMaxHeightPdf); 
                     if (resizedFoto) {
-                        doc.addImage(resizedFoto, 'JPEG', currentXPdf, yPos, imgWidthPdf, imgHeightPdf);
-                        currentXPdf += imgWidthPdf + imgMarginPdf; 
+                        // Obter as dimensões reais da imagem redimensionada
+                        let tempImg = new Image();
+                        tempImg.src = resizedFoto;
+                        await new Promise(resolve => tempImg.onload = resolve); // Wait for image to load to get dimensions
+
+                        doc.addImage(resizedFoto, 'JPEG', currentXPdf, yPos, tempImg.width, tempImg.height);
+                        currentXPdf += tempImg.width + imgMarginPdf; 
                         imagesInRowPdf++;
 
                         if (imagesInRowPdf === maxImagesPerRow) { 
-                            yPos += imgHeightPdf + imgMarginPdf;
+                            yPos += tempImg.height + imgMarginPdf; // Usar a altura real da imagem
                             currentXPdf = startXPdf;
                             imagesInRowPdf = 0;
                         }
