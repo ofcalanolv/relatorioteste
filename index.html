@@ -5,7 +5,7 @@
     <title>Gerador de Relatório</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.com/cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 10px; background: #f5f5f5; }
         h2, h3 { text-align: center; }
@@ -31,20 +31,18 @@
             display: none; /* Hidden by default */
             object-fit: cover;
         }
-        /* Flexbox for camera buttons to ensure they display side-by-side or stacked */
         .camera-controls {
             display: flex;
-            gap: 10px; /* Space between buttons */
+            gap: 10px;
             margin-top: 10px;
         }
         .camera-controls button {
-            flex: 1; /* Make buttons take equal width */
-            margin: 0; /* Remove default button margin */
+            flex: 1;
+            margin: 0;
         }
-        /* Responsive adjustments */
         @media (max-width: 600px) {
             .inline-fields { flex-direction: column; }
-            .camera-controls { flex-direction: column; } /* Stack buttons on small screens */
+            .camera-controls { flex-direction: column; }
         }
     </style>
 </head>
@@ -89,7 +87,8 @@
         let enderecoBaseDetalhes = {};
         let codigoAtual = "";
         let cameraStream = null;
-        let mapImageUrl = ""; // Store the direct URL for the map image
+        let mapDisplayImageUrl = ""; // URL for the map image to DISPLAY in HTML
+        let mapPdfImageUrl = ""; // URL for the static map image to embed in PDF
 
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
@@ -151,11 +150,10 @@
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
             try {
-                // Request 'environment' (rear) camera, if available
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 video.srcObject = cameraStream;
                 video.style.display = "block";
-                captureBtn.style.display = "block"; // Ensure capture button is visible
+                captureBtn.style.display = "block";
                 stopCameraBtn.style.display = "block";
             } catch (err) {
                 console.error("Erro ao acessar a câmera:", err);
@@ -207,7 +205,7 @@
             container.appendChild(removeBtn);
             previewDiv.appendChild(container);
 
-            pararCamera(); // Stop camera after capturing
+            pararCamera();
         }
 
         function atualizarEnderecoCompleto() {
@@ -241,10 +239,8 @@
 
             partes = partes.concat(partesEndBase);
 
-            // Filtra e junta as partes, garantindo que não haja vírgulas extras para campos vazios
             enderecoInput.value = partes.filter(Boolean).join(', ').replace(/, ,/g, ',').replace(/,$/, '').trim();
             
-            // Caso nenhum dos 3 esteja preenchido e não tenha endereço base, o campo fica vazio
             if (!enderecoBaseDetalhes.road && !numero && !complemento && partes.filter(Boolean).length === 0) {
                  enderecoInput.value = '';
             }
@@ -253,8 +249,9 @@
         async function coletarGPS() {
             document.getElementById('gps').innerText = "Coletando localização...";
             const mapPreview = document.getElementById('mapPreview');
-            mapPreview.style.display = 'none'; // Hide map while loading
-            mapImageUrl = ""; // Clear previous map URL
+            mapPreview.style.display = 'none';
+            mapDisplayImageUrl = ""; 
+            mapPdfImageUrl = "";
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -271,19 +268,30 @@
 
                         atualizarEnderecoCompleto();
 
-                        // Directly set the src for the map image
-                        const zoom = 15;
-                        const size = "400x200";
-                        mapImageUrl = `https://static.openstreetmap.org/staticmap/osm_basic_osm_contributed.png?mlat=${lat}&mlon=${lon}&zoom=${zoom}&size=${size}&marker=dot-red`;
-                        mapPreview.src = mapImageUrl;
+                        const zoom = 16; // Aumentei o zoom um pouco para melhor visibilidade
+                        // Calculate tile coordinates for display (OpenStreetMap tile system)
+                        // This is a common way to get a single map tile for display
+                        const n = Math.pow(2, zoom);
+                        const tileX = Math.floor(n * ((lon + 180) / 360));
+                        const tileY = Math.floor(n * (1 - (Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI)) / 2);
+                        
+                        // URL for a single map tile (display only)
+                        mapDisplayImageUrl = `https://tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
+                        mapPreview.src = mapDisplayImageUrl;
                         mapPreview.style.display = 'block';
+
+                        // URL for the static map image for PDF (same as before, but ensure it's loaded only when PDF is generated)
+                        const staticMapSize = "400x200"; // Size for PDF
+                        mapPdfImageUrl = `https://static.openstreetmap.org/staticmap/osm_basic_osm_contributed.png?mlat=${lat}&mlon=${lon}&zoom=${zoom}&size=${staticMapSize}&marker=dot-red`;
+
 
                     } catch (fetchError) {
                         console.error("Erro ao obter endereço do Nominatim:", fetchError);
                         document.getElementById('endereco').value = "Não foi possível obter o endereço detalhado.";
                         enderecoBaseDetalhes = {};
                         mapPreview.style.display = 'none';
-                        mapImageUrl = "";
+                        mapDisplayImageUrl = "";
+                        mapPdfImageUrl = "";
                     }
                 }, (geoError) => {
                     console.error("Erro de geolocalização:", geoError);
@@ -299,14 +307,16 @@
                     document.getElementById('gps').innerText = errorMessage;
                     enderecoBaseDetalhes = {};
                     mapPreview.style.display = 'none';
-                    mapImageUrl = "";
+                    mapDisplayImageUrl = "";
+                    mapPdfImageUrl = "";
                 });
             } else {
                 alert("Geolocalização não suportada neste navegador.");
                 document.getElementById('gps').innerText = "Geolocalização não suportada.";
                 enderecoBaseDetalhes = {};
                 mapPreview.style.display = 'none';
-                mapImageUrl = "";
+                mapDisplayImageUrl = "";
+                mapPdfImageUrl = "";
             }
         }
 
@@ -321,15 +331,13 @@
 
                     if (width > height) {
                         if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            height = parseInt(height); // Ensure integer
-                            width = parseInt(maxWidth); // Ensure integer
+                            height = parseInt(height * maxWidth / width);
+                            width = parseInt(maxWidth);
                         }
                     } else {
                         if (height > maxHeight) {
-                            width *= maxHeight / height;
-                            width = parseInt(width); // Ensure integer
-                            height = parseInt(maxHeight); // Ensure integer
+                            width = parseInt(width * maxHeight / height);
+                            height = parseInt(maxHeight);
                         }
                     }
                     canvas.width = width;
@@ -338,7 +346,10 @@
                     ctx.drawImage(img, 0, 0, width, height);
                     resolve(canvas.toDataURL('image/jpeg', 0.7));
                 };
-                img.onerror = () => resolve(null); // Resolve with null on error
+                img.onerror = () => {
+                    console.warn("Falha ao carregar ou redimensionar imagem (Base64 inválido ou erro de rede).");
+                    resolve(null);
+                };
             });
         }
 
@@ -385,14 +396,20 @@
             yPos += 15;
 
             // Add Map Image if available
-            if (mapImageUrl) {
+            if (mapPdfImageUrl) {
                  try {
                     // Fetch the image and convert to base64 for jsPDF
-                    const response = await fetch(mapImageUrl);
+                    // This uses the "static map" URL for the PDF
+                    const response = await fetch(mapPdfImageUrl);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const blob = await response.blob();
                     const mapBase64 = await new Promise(resolve => {
                         const reader = new FileReader();
                         reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = () => {
+                            console.error("FileReader failed to convert map blob to Base64.");
+                            resolve(null);
+                        };
                         reader.readAsDataURL(blob);
                     });
 
@@ -405,8 +422,12 @@
                         doc.setFontSize(14);
                         doc.text(`Localização no Mapa:`, 10, yPos);
                         yPos += 8;
+                        // Use the correct MIME type for PNG
                         doc.addImage(mapBase64, 'PNG', 10, yPos, 100, 50); // Adjust map size in PDF
                         yPos += 60;
+                    } else {
+                         doc.text(`(Falha ao processar mapa para PDF)`, 10, yPos);
+                         yPos += 10;
                     }
                 } catch (mapImgError) {
                     console.error("Erro ao adicionar imagem do mapa ao PDF:", mapImgError);
@@ -438,7 +459,7 @@
 
                 try {
                     const resizedFoto = await resizeImage(fotos[i], 200, 200);
-                    if (resizedFoto) { // Only add if resize was successful
+                    if (resizedFoto) {
                         doc.addImage(resizedFoto, 'JPEG', 10, yPos, 60, 60);
                         yPos += 70;
                     } else {
@@ -473,8 +494,9 @@
 
             coordenadas = "";
             enderecoBaseDetalhes = {};
-            mapImageUrl = ""; // Clear map URL
-            document.getElementById('mapPreview').src = ""; // Clear map image source
+            mapDisplayImageUrl = "";
+            mapPdfImageUrl = "";
+            document.getElementById('mapPreview').src = "";
             document.getElementById('mapPreview').style.display = 'none';
 
             gerarCodigoAtendimento();
