@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Gerador de Relatório</title>
+    <title>Sistema de Cadastro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -10,14 +10,14 @@
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            margin: 10px; 
+            margin: 0; /* Remove default body margin */
             background: #f5f5f5; 
             padding-bottom: 70px; /* Add padding for the fixed taskbar */
         }
         h2, h3 { text-align: center; }
         .container { 
             max-width: 500px; 
-            margin: auto; 
+            margin: 10px auto; /* Adjust margin-top for tabs */
             background: #fff; 
             padding: 15px; 
             border-radius: 8px; 
@@ -34,9 +34,16 @@
             font-size: 16px; 
             box-sizing: border-box; /* Include padding in element's total width and height */
         }
+        /* Style for disabled inputs and buttons */
+        input:disabled, textarea:disabled, button:disabled {
+            background-color: #e9e9e9;
+            color: #555;
+            cursor: not-allowed;
+            opacity: 0.7; /* Make disabled buttons slightly faded */
+        }
         .inline-fields { display: flex; gap: 10px; }
         .inline-fields input { flex: 1; }
-        #fotosPreview { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        #fotosPreview, #fotosDocumentoPreview { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
         .foto-container { position: relative; display: inline-block; }
         .foto-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; }
         .remove-btn { 
@@ -58,7 +65,7 @@
         }
         #gps { font-size: 14px; color: #555; }
         #contador { font-size: 12px; text-align: right; color: #555; margin-top: -8px; }
-        #codigoDisplay { font-size: 14px; font-weight: bold; text-align: center; margin-top: 10px; color: #333; }
+        #codigoDisplay, #codigoDisplayTecnico { font-size: 14px; font-weight: bold; text-align: center; margin-top: 10px; color: #333; }
         #mapPreview {
             width: 100%;
             height: 150px;
@@ -84,6 +91,27 @@
             background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer;
         }
         .camera-controls button:hover { background: #0056b3; }
+
+        /* Document Photo Button */
+        .btn-documento { /* General style for document photo button */
+            background: #6c757d; /* Grey color for document photo */
+            color: white;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-documento:hover {
+            background: #5a6268;
+        }
+
 
         /* Taskbar Styles */
         .taskbar {
@@ -115,7 +143,7 @@
             flex: 1; /* Distribute space evenly */
             margin: 0 2px; /* Small margin between buttons */
         }
-        .taskbar button:hover {
+        .taskbar button:not(:disabled):hover { /* Apply hover only when not disabled */
             background: #555;
         }
         .taskbar button i {
@@ -128,13 +156,15 @@
         
         /* Specific button colors */
         #btnColetarGPS { background: #007bff; }
-        #btnColetarGPS:hover { background: #0056b3; }
+        #btnColetarGPS:not(:disabled):hover { background: #0056b3; }
         #btnTirarFoto { background: #28a745; }
-        #btnTirarFoto:hover { background: #218838; }
+        #btnTirarFoto:not(:disabled):hover { background: #218838; }
         #btnGerarPDF { background: #ffc107; color: #333; } /* Adjusted color for visibility */
-        #btnGerarPDF:hover { background: #e0a800; }
+        #btnGerarPDF:not(:disabled):hover { background: #e0a800; }
         #btnLimparFormulario { background: #dc3545; }
-        #btnLimparFormulario:hover { background: #c82333; }
+        #btnLimparFormulario:not(:disabled):hover { background: #c82333; }
+        #btnEnviarWhatsApp { background: #25d366; } /* WhatsApp green, always visible */
+        #btnEnviarWhatsApp:not(:disabled):hover { background: #1da851; }
 
 
         @media (max-width: 600px) {
@@ -151,117 +181,276 @@
             }
         }
 
-        /* --- Login Page Styles --- */
-        #loginContainer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+        /* Checkbox demands styling */
+        .demand-group {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .demand-group h3 {
+            margin-top: 0;
+            text-align: left;
+            margin-bottom: 10px;
+        }
+        /* Flexbox for side-by-side checkboxes */
+        .demand-items-container {
+            display: flex;
+            flex-wrap: wrap; /* Allow items to wrap to the next line */
+            gap: 15px; /* Space between items */
+            justify-content: flex-start; /* Align items to the start */
+        }
+        .demand-item {
+            display: flex;
+            align-items: center;
+        }
+        .demand-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px; /* Slightly less margin for tighter fit */
+            transform: scale(1.2); /* Make checkboxes slightly larger */
+        }
+        .demand-item label {
+            font-size: 16px;
+            cursor: pointer;
+            white-space: nowrap; /* Keep label on one line */
+        }
+        #outrosDemandaContainer, #outrosDemandaContainerTecnico {
+            margin-top: 10px;
+            width: 100%; /* Take full width below other checkboxes */
+        }
+        #outrosDemandaInput, #outrosDemandaInputTecnico {
+            margin-top: 5px;
+            width: calc(100% - 20px); /* Adjust for padding */
+            display: block;
+        }
+
+        /* Tab Styles */
+        .tabs {
             display: flex;
             justify-content: center;
-            align-items: center;
-            z-index: 2000; /* Above all else */
+            background: #eee;
+            padding: 0;
+            margin-top: 0; /* Align with top of body */
+            border-bottom: 1px solid #ccc;
         }
-        #loginBox {
-            background: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            max-width: 350px;
-            width: 90%;
-        }
-        #loginBox h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        #loginBox input {
-            margin-bottom: 15px;
-        }
-        #loginBox button {
-            background: #007bff;
-            color: white;
-            padding: 10px;
+        .tab-button {
+            flex: 1; /* Distribute space evenly */
+            padding: 15px 20px;
+            cursor: pointer;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
+            background: #f0f0f0;
+            font-size: 18px;
+            color: #555;
+            transition: background 0.3s, color 0.3s;
+            border-bottom: 3px solid transparent; /* For active indicator */
+            text-align: center;
         }
-        #loginBox button:hover {
-            background: #0056b3;
+        .tab-button:hover {
+            background: #e0e0e0;
         }
-        #loginBox p {
-            margin-top: 15px;
-            font-size: 14px;
-            cursor: pointer;
+        .tab-button.active {
+            background: #fff;
             color: #007bff;
+            border-bottom: 3px solid #007bff;
         }
-        #loginBox p:hover {
-            text-decoration: underline;
-        }
-        #loginStatus {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 1001;
+        .tab-content {
             display: none; /* Hidden by default */
+            /* Add some padding if needed, but container already has it */
+        }
+        .tab-content.active {
+            display: block; /* Show active tab content */
         }
     </style>
 </head>
 <body>
-    <div id="loginContainer">
-        <div id="loginBox">
-            <h2 id="loginTitle">Entrar</h2>
-            <input type="text" id="loginUsername" placeholder="Nome de Usuário">
-            <input type="password" id="loginPassword" placeholder="Senha">
-            <input type="text" id="loginPhone" placeholder="Telefone (Cadastro)" style="display:none;">
-            <button id="loginButton" onclick="handleLoginRegister()">Entrar</button>
-            <p id="toggleLoginRegister" onclick="toggleLoginRegister()">Não tem conta? Cadastre-se</p>
+    <div class="tabs">
+        <button class="tab-button active" onclick="showTab('agenteCampo')">Agente de Campo</button>
+        <button class="tab-button" onclick="showTab('tecnico')">Técnico</button>
+    </div>
+
+    <div id="agenteCampo" class="tab-content active">
+        <div class="container" id="appContainerAgente">
+            <h2>Cadastro de Usuário - Agente de Campo</h2>
+            <div id="codigoDisplay"></div>
+            
+            <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável">
+            <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*">
+
+            <input type="text" id="nome" placeholder="Nome do Usuário">
+            <input type="text" id="identidade" placeholder="Identidade">
+            <input type="text" id="cpf" placeholder="CPF" oninput="formatarCPF(this)">
+
+            <button class="btn-documento" onclick="tirarFotoDocumento('agente')">
+                <i class="fas fa-id-card"></i>
+                <span>Fotografar Documento (Opcional)</span>
+            </button>
+            <video id="videoDocumento" width="100%" autoplay style="display:none;" playsinline></video>
+            <div class="camera-controls">
+                <button id="captureDocBtn" style="display:none;" onclick="capturarImagemDocumento('agente')">Capturar Imagem do Documento</button>
+                <button id="stopCameraDocBtn" style="display:none; background: #dc3545;" onclick="pararCameraDocumento('agente')">Fechar Câmera do Documento</button>
+            </div>
+            <div id="fotosDocumentoPreview"></div>
+
+
+            <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
+            <div class="inline-fields">
+                <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
+                <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
+            </div>
+            <img id="mapPreview" alt="Mapa da Localização">
+
+            <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" oninput="formatarDataNascimento(this)" onchange="calcularIdade()">
+            <input type="text" id="idade" placeholder="Idade" readonly>
+
+            <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
+            <div id="contador">0 / 5000</div>
+
+            <div class="demand-group">
+                <h3>Demandas:</h3>
+                <div class="demand-items-container"> 
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaBanho" name="demandas" value="Banho">
+                        <label for="demandaBanho">Banho</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaAssistenteSocial" name="demandas" value="Assistente Social">
+                        <label for="demandaAssistenteSocial">Assistente Social</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaPsicologo" name="demandas" value="Psicólogo">
+                        <label for="demandaPsicologo">Psicólogo</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaEncaminhamento" name="demandas" value="Encaminhamento">
+                        <label for="demandaEncaminhamento">Encaminhamento</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaAcolhimento" name="demandas" value="Acolhimento">
+                        <label for="demandaAcolhimento">Acolhimento</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaDuvidas" name="demandas" value="Dúvidas">
+                        <label for="demandaDuvidas">Dúvidas</label> 
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaInformacoes" name="demandas" value="Informações">
+                        <label for="demandaInformacoes">Informações</label> 
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaCorteCabelo" name="demandas" value="Corte de cabelo">
+                        <label for="demandaCabelo">Corte de cabelo</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaOutros" name="demandas" value="Outros">
+                        <label for="demandaOutros">Outros</label>
+                    </div>
+                </div> 
+                <div id="outrosDemandaContainer" style="display:none;">
+                    <input type="text" id="outrosDemandaInput" placeholder="Especifique outras demandas">
+                </div>
+            </div>
+
+            <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
+            <div class="camera-controls">
+                <button id="captureBtn" style="display:none;" onclick="capturarImagem('agente')">Capturar Imagem</button>
+                <button id="stopCameraBtn" style="display:none; background: #dc3545;" onclick="pararCamera('agente')">Fechar Câmera</button>
+            </div>
+            <div id="fotosPreview"></div>
+
+            <p id="gps"></p>
         </div>
     </div>
 
-    <div class="container" id="appContainer" style="display:none;">
-        <h2>Coleta de Dados</h2>
-        <div id="codigoDisplay"></div>
-        <input type="text" id="nome" placeholder="Nome">
-        <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
-        <div class="inline-fields">
-            <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
-            <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
+    <div id="tecnico" class="tab-content">
+        <div class="container" id="appContainerTecnico">
+            <h2>Cadastro de Usuário - Técnico</h2>
+            <div id="codigoDisplayTecnico"></div>
+            
+            <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável">
+            <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*">
+
+            <input type="text" id="nome_tecnico" placeholder="Nome do Usuário">
+            <input type="text" id="identidade_tecnico" placeholder="Identidade">
+            <input type="text" id="cpf_tecnico" placeholder="CPF" oninput="formatarCPF(this)">
+
+            <button class="btn-documento" onclick="tirarFotoDocumento('tecnico')">
+                <i class="fas fa-id-card"></i>
+                <span>Fotografar Documento (Opcional)</span>
+            </button>
+            <div id="fotosDocumentoPreviewTecnico"></div>
+
+
+            <input type="text" id="endereco_tecnico" placeholder="Endereço (coletado automaticamente)" readonly>
+            <div class="inline-fields">
+                <input type="text" id="numero_tecnico" placeholder="Número" oninput="atualizarEnderecoCompleto('tecnico')">
+                <input type="text" id="complemento_tecnico" placeholder="Complemento" oninput="atualizarEnderecoCompleto('tecnico')">
+            </div>
+            <div id="mapPreviewTecnico" style="display:none;"></div> <input type="text" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" oninput="formatarDataNascimento(this)" onchange="calcularIdade('tecnico')">
+            <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
+
+            <textarea id="historico_tecnico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('tecnico')"></textarea>
+            <div id="contadorTecnico">0 / 5000</div>
+
+            <div class="demand-group">
+                <h3>Demandas:</h3>
+                <div class="demand-items-container"> 
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho">
+                        <label for="demandaBanho_tecnico">Banho</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social">
+                        <label for="demandaAssistenteSocial_tecnico">Assistente Social</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo">
+                        <label for="demandaPsicologo_tecnico">Psicólogo</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento">
+                        <label for="demandaEncaminhamento_tecnico">Encaminhamento</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento">
+                        <label for="demandaAcolhimento_tecnico">Acolhimento</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas">
+                        <label for="demandaDuvidas_tecnico">Dúvidas</label> 
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações">
+                        <label for="demandaInformacoes_tecnico">Informações</label> 
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo">
+                        <label for="demandaCabelo_tecnico">Corte de cabelo</label>
+                    </div>
+                    <div class="demand-item">
+                        <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros">
+                        <label for="demandaOutros_tecnico">Outros</label>
+                    </div>
+                </div> 
+                <div id="outrosDemandaContainerTecnico" style="display:none;">
+                    <input type="text" id="outrosDemandaInputTecnico" placeholder="Especifique outras demandas">
+                </div>
+            </div>
+
+            <div id="fotosPreviewTecnico"></div>
+
+            <p id="gpsTecnico"></p>
         </div>
-        <img id="mapPreview" alt="Mapa da Localização">
-
-        <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" oninput="formatarDataNascimento(this)" onchange="calcularIdade()" maxlength="10">
-        <input type="text" id="idade" placeholder="Idade" readonly>
-
-        <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
-        <div id="contador">0 / 5000</div>
-
-        <h3>Fotos</h3>
-        <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
-        <div class="camera-controls">
-            <button id="captureBtn" style="display:none;" onclick="capturarImagem()">Capturar Imagem</button>
-            <button id="stopCameraBtn" style="display:none; background: #dc3545;" onclick="pararCamera()">Fechar Câmera</button>
-        </div>
-        <div id="fotosPreview"></div>
-
-        <p id="gps"></p>
     </div>
 
-    <div class="taskbar" id="mainTaskbar" style="display:none;">
+
+    <div class="taskbar" id="mainTaskbar">
         <button id="btnColetarGPS" onclick="coletarGPS()">
             <i class="fas fa-map-marker-alt"></i>
             <span>Endereço</span>
         </button>
-        <button id="btnTirarFoto" onclick="tirarFoto()">
+        <button id="btnTirarFoto" onclick="tirarFoto('global')">
             <i class="fas fa-camera"></i>
             <span>Foto</span>
         </button>
@@ -273,45 +462,240 @@
             <i class="fas fa-broom"></i>
             <span>Limpar</span>
         </button>
+         <button id="btnEnviarWhatsApp" onclick="enviarWhatsApp()">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp</span>
+        </button>
     </div>
-
-    <div id="loginStatus"></div>
 
     <script>
         const Maps_API_KEY = "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E"; 
 
-        let fotos = [];
-        let coordenadas = "";
-        let enderecoBaseDetalhes = {};
-        let codigoAtual = "";
-        let cameraStream = null;
-        let mapImageUrl = ""; 
-        
-        let loggedInUser = null; // Store current logged in user's data
+        // Dados para Agente de Campo
+        let dadosAgenteCampo = {
+            fotos: [], // Fotos do usuário
+            fotosDocumento: [], // Fotos do documento
+            coordenadas: "",
+            enderecoBaseDetalhes: {},
+            codigoAtual: "",
+            mapImageUrl: "", 
+            pdfDataUri: null, 
+            pdfFileName: "",
+            agenteDadosPreenchidos: false,
+            // Adicione mais campos aqui se precisar de dados separados para cada aba
+            nomeAgente: "",
+            telefoneAgente: "",
+            nomeUsuario: "",
+            identidade: "",
+            cpf: "",
+            endereco: "",
+            numero: "",
+            complemento: "",
+            dataNascimento: "",
+            idade: "",
+            historico: "",
+            demandas: []
+        };
 
-        // --- User Authentication Variables ---
-        // For a real application, you'd use a backend server and database.
-        // For this local HTML, we'll use localStorage to simulate.
-        const USERS_STORAGE_KEY = 'registeredUsers';
+        // Dados para Técnico (inicialmente duplicados para teste)
+        let dadosTecnico = {
+            fotos: [], 
+            fotosDocumento: [], 
+            coordenadas: "",
+            enderecoBaseDetalhes: {},
+            codigoAtual: "",
+            mapImageUrl: "", 
+            pdfDataUri: null, 
+            pdfFileName: "",
+            agenteDadosPreenchidos: false, // Pode ser renomeado para 'tecnicoDadosPreenchidos'
+            // IDs de campos da aba Técnico devem ser atualizados para pegar seus próprios valores
+            nomeAgente: "", // Isso será nomeTecnico
+            telefoneAgente: "", // Isso será telefoneTecnico
+            nomeUsuario: "",
+            identidade: "",
+            cpf: "",
+            endereco: "",
+            numero: "",
+            complemento: "",
+            dataNascimento: "",
+            idade: "",
+            historico: "",
+            demandas: []
+        };
 
-        function addCustomFont(doc) {
+        let activeTab = 'agenteCampo'; // Controla qual aba está ativa
+
+        const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
+        };
+
+        function getActiveData() {
+            return activeTab === 'agenteCampo' ? dadosAgenteCampo : dadosTecnico;
+        }
+
+        function getElementByIdForActiveTab(idBase, forElement = true) {
+            if (activeTab === 'agenteCampo') {
+                return document.getElementById(idBase);
+            } else {
+                // IDs para aba técnico
+                if (idBase === 'codigoDisplay') return document.getElementById('codigoDisplayTecnico');
+                if (idBase === 'nomeAgente') return document.getElementById('nomeTecnico');
+                if (idBase === 'telefoneAgente') return document.getElementById('telefoneTecnico');
+                if (idBase === 'nome') return document.getElementById('nome_tecnico');
+                if (idBase === 'identidade') return document.getElementById('identidade_tecnico');
+                if (idBase === 'cpf') return document.getElementById('cpf_tecnico');
+                if (idBase === 'endereco') return document.getElementById('endereco_tecnico');
+                if (idBase === 'numero') return document.getElementById('numero_tecnico');
+                if (idBase === 'complemento') return document.getElementById('complemento_tecnico');
+                if (idBase === 'dataNascimento') return document.getElementById('dataNascimento_tecnico');
+                if (idBase === 'idade') return document.getElementById('idade_tecnico');
+                if (idBase === 'historico') return document.getElementById('historico_tecnico');
+                if (idBase === 'contador') return document.getElementById('contadorTecnico');
+                if (idBase === 'demandaOutros') return document.getElementById('demandaOutros_tecnico');
+                if (idBase === 'outrosDemandaContainer') return document.getElementById('outrosDemandaContainerTecnico');
+                if (idBase === 'outrosDemandaInput') return document.getElementById('outrosDemandaInputTecnico');
+                if (idBase === 'fotosPreview') return document.getElementById('fotosPreviewTecnico');
+                if (idBase === 'fotosDocumentoPreview') return document.getElementById('fotosDocumentoPreviewTecnico');
+                if (idBase === 'gps') return document.getElementById('gpsTecnico');
+                // Campos de camera e mapPreview são compartilhados no HTML
+                if (idBase === 'videoDocumento' || idBase === 'captureDocBtn' || idBase === 'stopCameraDocBtn' ||
+                    idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn' ||
+                    idBase === 'mapPreview') {
+                    return document.getElementById(idBase);
+                }
+                
+                // Para checkboxes, o 'name' é diferente
+                if (idBase === 'demandas') {
+                    return document.querySelectorAll(`input[name="demandas_tecnico"]`);
+                } else if (forElement) { // Default para outros elementos
+                    return document.getElementById(`${idBase}_tecnico`);
+                }
+                return null;
+            }
+        }
+
+
+        function showTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+            
+            activeTab = tabId; // Atualiza a aba ativa
+            
+            // Re-renderizar o código de atendimento e habilitar/desabilitar o botão do WhatsApp
+            const activeData = getActiveData();
+            gerarCodigoAtendimento(); // Gera um novo código para a aba ativa (ou exibe o existente)
+            document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri;
+
+            // Para parar as câmeras se o usuário mudar de aba com uma câmera aberta
+            pararCamera('global'); 
+            pararCameraDocumento('global');
         }
 
         function gerarCodigoAtendimento() {
-            const agora = new Date();
-            const d = String(agora.getDate()).padStart(2, '0');
-            const m = String(agora.getMonth() + 1).padStart(2, '0');
-            const y = agora.getFullYear();
-            const h = String(agora.getHours()).padStart(2, '0');
-            const min = String(agora.getMinutes()).padStart(2, '0');
-            const s = String(agora.getSeconds()).padStart(2, '0');
-            codigoAtual = `${d}${m}${y}-${h}${min}${s}`;
-            document.getElementById('codigoDisplay').innerText = `Relatório nº: ${codigoAtual}`;
-            return codigoAtual;
+            const activeData = getActiveData();
+            if (!activeData.codigoAtual) {
+                const agora = new Date();
+                const d = String(agora.getDate()).padStart(2, '0');
+                const m = String(agora.getMonth() + 1).padStart(2, '0');
+                const y = agora.getFullYear();
+                const h = String(agora.getHours()).padStart(2, '0');
+                const min = String(agora.getMinutes()).padStart(2, '0');
+                const s = String(agora.getSeconds()).padStart(2, '0');
+                activeData.codigoAtual = `${d}${m}${y}-${h}${min}${s}`;
+            }
+            getElementByIdForActiveTab('codigoDisplay').innerText = `Relatório nº: ${activeData.codigoAtual}`;
+            return activeData.codigoAtual;
         }
 
-        // --- Date Formatting and Age Calculation ---
+        document.addEventListener('DOMContentLoaded', () => {
+            gerarCodigoAtendimento();
+            
+            getElementByIdForActiveTab('demandaOutros').addEventListener('change', function() {
+                const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer');
+                outrosContainer.style.display = this.checked ? 'block' : 'none';
+                if (!this.checked) {
+                    getElementByIdForActiveTab('outrosDemandaInput').value = ''; 
+                }
+            });
+            // Adicionar event listener para a aba Técnico também
+            getElementByIdForActiveTab('demandaOutros', false).addEventListener('change', function() {
+                 const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer', false);
+                 outrosContainer.style.display = this.checked ? 'block' : 'none';
+                 if (!this.checked) {
+                     getElementByIdForActiveTab('outrosDemandaInput', false).value = '';
+                 }
+            });
+
+            getElementByIdForActiveTab('telefoneAgente').addEventListener('input', function (e) {
+                e.target.value = e.target.value.replace(/\D/g, ''); 
+            });
+            getElementByIdForActiveTab('telefoneAgente', false).addEventListener('input', function (e) { // Para aba tecnico
+                 e.target.value = e.target.value.replace(/\D/g, '');
+            });
+
+            getElementByIdForActiveTab('cpf').addEventListener('input', function (e) {
+                formatarCPF(e.target);
+            });
+            getElementByIdForActiveTab('cpf', false).addEventListener('input', function (e) { // Para aba tecnico
+                 formatarCPF(e.target);
+            });
+
+            // Adiciona listener para desabilitar campos do agente após o primeiro input
+            getElementByIdForActiveTab('nomeAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
+            getElementByIdForActiveTab('telefoneAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
+            getElementByIdForActiveTab('nomeAgente', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
+            getElementByIdForActiveTab('telefoneAgente', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
+
+            // Inicia o botão do WhatsApp desabilitado
+            document.getElementById('btnEnviarWhatsApp').disabled = true;
+
+            // Exibir a primeira aba por padrão
+            showTab('agenteCampo');
+        });
+
+        function checkAndDisableAgentFields(tabId) {
+            const currentData = tabId === 'agenteCampo' ? dadosAgenteCampo : dadosTecnico;
+            const nomeInput = document.getElementById(tabId === 'agenteCampo' ? 'nomeAgente' : 'nomeTecnico');
+            const telefoneInput = document.getElementById(tabId === 'agenteCampo' ? 'telefoneAgente' : 'telefoneTecnico');
+
+            if (nomeInput.value.trim() !== '' && telefoneInput.value.trim() !== '' && !currentData.agenteDadosPreenchidos) {
+                nomeInput.disabled = true;
+                telefoneInput.disabled = true;
+                currentData.agenteDadosPreenchidos = true;
+            }
+        }
+
+
+        function formatarCPF(input) {
+            let value = input.value.replace(/\D/g, ''); 
+            let formattedValue = '';
+
+            if (value.length > 0) {
+                formattedValue += value.substring(0, 3);
+            }
+            if (value.length > 3) {
+                formattedValue += '.' + value.substring(3, 6);
+            }
+            if (value.length > 6) {
+                formattedValue += '.' + value.substring(6, 9);
+            }
+            if (value.length > 9) {
+                formattedValue += '-' + value.substring(9, 11);
+            }
+            input.value = formattedValue;
+        }
+
+
         function formatarDataNascimento(input) {
             let value = input.value.replace(/\D/g, ''); 
             let formattedValue = '';
@@ -328,9 +712,12 @@
             input.value = formattedValue;
         }
 
-        function calcularIdade() {
-            const nascimentoStr = document.getElementById('dataNascimento').value;
-            const idadeInput = document.getElementById('idade');
+        function calcularIdade(tabContext = 'agente') {
+            const dataNascimentoInput = tabContext === 'agente' ? getElementByIdForActiveTab('dataNascimento') : getElementByIdForActiveTab('dataNascimento', false);
+            const idadeInput = tabContext === 'agente' ? getElementByIdForActiveTab('idade') : getElementByIdForActiveTab('idade', false);
+            
+            const nascimentoStr = dataNascimentoInput.value;
+
             if (!nascimentoStr || nascimentoStr.length !== 10 || !nascimentoStr.includes('/')) {
                 idadeInput.value = '';
                 return;
@@ -371,16 +758,25 @@
             idadeInput.value = idadeTexto;
         }
 
-        function atualizarContador() {
-            const historico = document.getElementById('historico').value.length;
-            document.getElementById('contador').innerText = `${historico} / 5000`;
+        function atualizarContador(tabContext = 'agente') {
+            const historicoInput = tabContext === 'agente' ? getElementByIdForActiveTab('historico') : getElementByIdForActiveTab('historico', false);
+            const contadorDisplay = tabContext === 'agente' ? getElementByIdForActiveTab('contador') : getElementByIdForActiveTab('contador', false);
+            
+            const historico = historicoInput.value.length;
+            contadorDisplay.innerText = `${historico} / 5000`;
         }
 
-        // --- Camera Functions ---
-        async function tirarFoto() {
+
+        // --- Funções para a Câmera Principal (fotos do usuário) ---
+        async function tirarFoto(tabContext = 'global') {
             const video = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
+
+            // Se a câmera do documento estiver ativa, primeiro pare-a
+            if (cameraDocumentoStream && cameraDocumentoStream.active) {
+                pararCameraDocumento('global');
+            }
 
             if (cameraStream && cameraStream.active) {
                 video.style.display = "block";
@@ -398,15 +794,15 @@
                 stopCameraBtn.style.display = "block";
                 video.play();
             } catch (err) {
-                console.error("Erro ao acessar a câmera:", err);
-                alert("Não foi possível acessar a câmera. Verifique as permissões do navegador ou se a câmera está em uso.");
+                console.error("Erro ao acessar a câmera principal:", err);
+                alert("Não foi possível acessar a câmera principal. Verifique as permissões do navegador ou se a câmera está em uso.");
                 video.style.display = "none";
                 captureBtn.style.display = "none";
                 stopCameraBtn.style.display = "none";
             }
         }
 
-        function pararCamera() {
+        function pararCamera(tabContext = 'global') {
             const video = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
@@ -421,10 +817,10 @@
             stopCameraBtn.style.display = "none";
         }
 
-        function capturarImagem() {
+        function capturarImagem(tabContext = 'agente') {
             const video = document.getElementById('video');
             if (!video.srcObject) { 
-                alert("Câmera não está ativa para captura.");
+                alert("Câmera principal não está ativa para captura.");
                 return;
             }
 
@@ -434,9 +830,10 @@
             canvas.getContext('2d').drawImage(video, 0, 0);
             const fotoBase64 = canvas.toDataURL("image/jpeg", 0.8);
 
-            fotos.push(fotoBase64);
+            const activeData = getActiveData();
+            activeData.fotos.push(fotoBase64);
 
-            const previewDiv = document.getElementById('fotosPreview');
+            const previewDiv = getElementByIdForActiveTab('fotosPreview');
             const container = document.createElement('div');
             container.classList.add('foto-container');
             const img = document.createElement('img');
@@ -446,7 +843,7 @@
             removeBtn.innerText = "X";
             removeBtn.classList.add('remove-btn');
             removeBtn.onclick = () => {
-                fotos = fotos.filter(f => f !== fotoBase64);
+                activeData.fotos = activeData.fotos.filter(f => f !== fotoBase64);
                 container.remove();
             };
             container.appendChild(img);
@@ -454,16 +851,103 @@
             previewDiv.appendChild(container);
         }
 
-        // --- GPS and Map Functions ---
-        function atualizarEnderecoCompleto() {
-            const numero = document.getElementById('numero').value.trim();
-            const complemento = document.getElementById('complemento').value.trim();
-            const enderecoInput = document.getElementById('endereco');
+        // --- Novas Funções para a Câmera de Documento ---
+        async function tirarFotoDocumento(tabContext = 'agente') {
+            const videoDocumento = document.getElementById('videoDocumento');
+            const captureDocBtn = document.getElementById('captureDocBtn');
+            const stopCameraDocBtn = document.getElementById('stopCameraDocBtn');
+
+            // Se a câmera principal estiver ativa, primeiro pare-a
+            if (cameraStream && cameraStream.active) {
+                pararCamera('global');
+            }
+
+            if (cameraDocumentoStream && cameraDocumentoStream.active) {
+                videoDocumento.style.display = "block";
+                captureDocBtn.style.display = "block";
+                stopCameraDocBtn.style.display = "block";
+                return;
+            }
+
+            try {
+                videoDocumento.setAttribute('playsinline', ''); 
+                cameraDocumentoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                videoDocumento.srcObject = cameraDocumentoStream;
+                videoDocumento.style.display = "block";
+                captureDocBtn.style.display = "block"; 
+                stopCameraDocBtn.style.display = "block";
+                videoDocumento.play();
+            } catch (err) {
+                console.error("Erro ao acessar a câmera do documento:", err);
+                alert("Não foi possível acessar a câmera do documento. Verifique as permissões do navegador ou se a câmera está em uso.");
+                videoDocumento.style.display = "none";
+                captureDocBtn.style.display = "none";
+                stopCameraDocBtn.style.display = "none";
+            }
+        }
+
+        function pararCameraDocumento(tabContext = 'global') {
+            const videoDocumento = document.getElementById('videoDocumento');
+            const captureDocBtn = document.getElementById('captureDocBtn');
+            const stopCameraDocBtn = document.getElementById('stopCameraDocBtn');
+            if (cameraDocumentoStream) {
+                cameraDocumentoStream.getTracks().forEach(track => track.stop());
+                videoDocumento.srcObject = null;
+                cameraDocumentoStream = null;
+                videoDocumento.pause();
+            }
+            videoDocumento.style.display = "none";
+            captureDocBtn.style.display = "none";
+            stopCameraDocBtn.style.display = "none";
+        }
+
+        function capturarImagemDocumento(tabContext = 'agente') {
+            const videoDocumento = document.getElementById('videoDocumento');
+            if (!videoDocumento.srcObject) {
+                alert("Câmera do documento não está ativa para captura.");
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = videoDocumento.videoWidth;
+            canvas.height = videoDocumento.videoHeight;
+            canvas.getContext('2d').drawImage(videoDocumento, 0, 0);
+            const fotoDocumentoBase64 = canvas.toDataURL("image/jpeg", 0.8);
+
+            const activeData = getActiveData();
+            activeData.fotosDocumento.push(fotoDocumentoBase64);
+
+            const previewDiv = getElementByIdForActiveTab('fotosDocumentoPreview');
+            const container = document.createElement('div');
+            container.classList.add('foto-container');
+            const img = document.createElement('img');
+            img.src = fotoDocumentoBase64;
+            img.classList.add('foto-thumb');
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = "X";
+            removeBtn.classList.add('remove-btn');
+            removeBtn.onclick = () => {
+                activeData.fotosDocumento = activeData.fotosDocumento.filter(f => f !== fotoDocumentoBase64);
+                container.remove();
+            };
+            container.appendChild(img);
+            container.appendChild(removeBtn);
+            previewDiv.appendChild(container);
+        }
+
+        function atualizarEnderecoCompleto(tabContext = 'agente') {
+            const activeData = getActiveData();
+            const numeroInput = tabContext === 'agente' ? getElementByIdForActiveTab('numero') : getElementByIdForActiveTab('numero', false);
+            const complementoInput = tabContext === 'agente' ? getElementByIdForActiveTab('complemento') : getElementByIdForActiveTab('complemento', false);
+            const enderecoInput = tabContext === 'agente' ? getElementByIdForActiveTab('endereco') : getElementByIdForActiveTab('endereco', false);
+            
+            const numero = numeroInput.value.trim();
+            const complemento = complementoInput.value.trim();
             
             let partes = [];
             
-            if (enderecoBaseDetalhes.road) {
-                partes.push(enderecoBaseDetalhes.road);
+            if (activeData.enderecoBaseDetalhes.road) {
+                partes.push(activeData.enderecoBaseDetalhes.road);
             }
             
             if (numero) {
@@ -475,29 +959,32 @@
             }
 
             const partesEndBase = [
-                enderecoBaseDetalhes.suburb || enderecoBaseDetalhes.neighbourhood,
-                enderecoBaseDetalhes.city || enderecoBaseDetalhes.town || enderecoBaseDetalhes.village,
-                enderecoBaseDetalhes.state
+                activeData.enderecoBaseDetalhes.suburb || activeData.enderecoBaseDetalhes.neighbourhood,
+                activeData.enderecoBaseDetalhes.city || activeData.enderecoBaseDetalhes.town || activeData.enderecoBaseDetalhes.village,
+                activeData.enderecoBaseDetalhes.state
             ].filter(Boolean);
 
             partes = partes.concat(partesEndBase);
 
             enderecoInput.value = partes.filter(Boolean).join(', ').replace(/, ,/g, ',').replace(/,$/, '').trim();
             
-            if (!enderecoBaseDetalhes.road && !numero && !complemento && partes.filter(Boolean).length === 0) {
+            if (!activeData.enderecoBaseDetalhes.road && !numero && !complemento && partes.filter(Boolean).length === 0) {
                  enderecoInput.value = '';
             }
         }
 
         async function coletarGPS() {
-            document.getElementById('gps').innerText = "Coletando localização...";
-            const mapPreview = document.getElementById('mapPreview');
+            const activeData = getActiveData();
+            const gpsDisplay = getElementByIdForActiveTab('gps');
+            const mapPreview = document.getElementById('mapPreview'); // Map preview é compartilhado
+
+            gpsDisplay.innerText = "Coletando localização...";
             mapPreview.style.display = 'none';
-            mapImageUrl = ""; 
+            activeData.mapImageUrl = ""; 
 
             if (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
                 alert("Por favor, configure sua CHAVE DE API DO GOOGLE MAPS no código para que o mapa funcione.");
-                document.getElementById('gps').innerText = "Erro: API Key do Google não configurada.";
+                gpsDisplay.innerText = "Erro: API Key do Google não configurada.";
                 return;
             }
 
@@ -505,32 +992,32 @@
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const lat = pos.coords.latitude.toFixed(6);
                     const lon = pos.coords.longitude.toFixed(6);
-                    coordenadas = `Lat: ${lat}, Lng: ${lon}`;
-                    document.getElementById('gps').innerText = coordenadas;
+                    activeData.coordenadas = `Lat: ${lat}, Lng: ${lon}`;
+                    gpsDisplay.innerText = activeData.coordenadas;
 
                     try {
                         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
                         const nominatimResponse = await fetch(nominatimUrl);
                         const nominatimData = await nominatimResponse.json();
-                        enderecoBaseDetalhes = nominatimData.address || {};
+                        activeData.enderecoBaseDetalhes = nominatimData.address || {};
 
-                        atualizarEnderecoCompleto();
+                        atualizarEnderecoCompleto(activeTab === 'agenteCampo' ? 'agente' : 'tecnico');
 
                         const zoom = 15;
                         const size = "400x200"; 
                         const marker = `markers=color:red%7Clabel:P%7C${lat},${lon}`;
                         
-                        mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=${zoom}&size=${size}&${marker}&key=${Maps_API_KEY}`;
+                        activeData.mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=${zoom}&size=${size}&${marker}&key=${Maps_API_KEY}`;
                         
-                        mapPreview.src = mapImageUrl;
+                        mapPreview.src = activeData.mapImageUrl;
                         mapPreview.style.display = 'block';
 
                     } catch (fetchError) {
                         console.error("Erro ao obter endereço ou mapa:", fetchError);
-                        document.getElementById('endereco').value = "Não foi possível obter o endereço detalhado.";
-                        enderecoBaseDetalhes = {};
+                        getElementByIdForActiveTab('endereco').value = "Não foi possível obter o endereço detalhado.";
+                        activeData.enderecoBaseDetalhes = {};
                         mapPreview.style.display = 'none';
-                        mapImageUrl = "";
+                        activeData.mapImageUrl = "";
                         alert("Erro ao carregar endereço ou mapa. Verifique a API Key do Google e a conexão.");
                     }
                 }, (geoError) => {
@@ -544,22 +1031,21 @@
                         errorMessage = "Tempo esgotado para obter a localização.";
                     }
                     alert(errorMessage);
-                    document.getElementById('gps').innerText = errorMessage;
-                    enderecoBaseDetalhes = {};
+                    gpsDisplay.innerText = errorMessage;
+                    activeData.enderecoBaseDetalhes = {};
                     mapPreview.style.display = 'none';
-                    mapImageUrl = "";
+                    activeData.mapImageUrl = "";
                 });
             } else {
                 alert("Geolocalização não suportada neste navegador.");
-                document.getElementById('gps').innerText = "Geolocalização não suportada.";
-                enderecoBaseDetalhes = {};
+                gpsDisplay.innerText = "Geolocalização não suportada.";
+                activeData.enderecoBaseDetalhes = {};
                 mapPreview.style.display = 'none';
-                mapImageUrl = "";
+                activeData.mapImageUrl = "";
             }
         }
 
-        // --- Image Resizing (Adjusted for 4:3 Aspect Ratio) ---
-        function resizeImage(base64Str, targetWidth = 600) { // Target width for the resized image for PDF
+        function resizeImage(base64Str, targetWidth = 600) { 
             return new Promise((resolve) => {
                 let img = new Image();
                 img.src = base64Str;
@@ -568,50 +1054,33 @@
                     let originalWidth = img.width;
                     let originalHeight = img.height;
 
-                    // Calculate target height to maintain 4:3 aspect ratio (width/height = 4/3)
-                    // If original is vertical, rotate it conceptually before resizing to 4:3 landscape
-                    let isLandscape = originalWidth >= originalHeight;
-                    let width, height;
-
-                    if (isLandscape) {
-                        width = targetWidth;
-                        height = (targetWidth / 4) * 3; // Maintain 4:3 aspect ratio
-                    } else { // Original is portrait
-                        // Rotate it conceptually to landscape (height becomes width, width becomes height for calculation)
-                        width = targetWidth;
-                        height = (targetWidth / 4) * 3;
-                        // To achieve 4:3 landscape from portrait, we might crop or letterbox.
-                        // For simplicity, we just resize to fit the 4:3 target while maintaining aspect.
-                        // This might result in letterboxing or stretching if original is not 4:3
-                        // A more advanced solution would involve cropping the center
-                        // For now, let's fit the longest side to our target width, and adjust height
-                        // and then crop if necessary for strict 4:3 or pad
-                        
-                        // Let's force it to 4:3 landscape directly for simplicity
-                        // The drawn image will be scaled to fit this canvas
-                        if (originalWidth / originalHeight > 4 / 3) { // Original is wider than 4:3
-                            height = (originalHeight / originalWidth) * targetWidth;
-                            width = targetWidth;
-                        } else { // Original is taller than 4:3 or 4:3
-                            width = (originalWidth / originalHeight) * ((targetWidth / 4) * 3);
-                            height = (targetWidth / 4) * 3;
-                        }
-                    }
+                    let targetHeight = (targetWidth / 4) * 3; 
 
                     canvas.width = targetWidth;
-                    canvas.height = (targetWidth / 4) * 3; // Ensure canvas is 4:3
+                    canvas.height = targetHeight;
 
                     let ctx = canvas.getContext('2d');
-                    ctx.fillStyle = "#FFFFFF"; // Fill background with white
+                    ctx.fillStyle = "#FFFFFF"; 
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // Calculate scaling factor to fit the image inside the 4:3 canvas
-                    let scale = Math.min(canvas.width / originalWidth, canvas.height / originalHeight);
-                    let imgX = (canvas.width / 2) - (originalWidth / 2) * scale;
-                    let imgY = (canvas.height / 2) - (originalHeight / 2) * scale;
+                    let imgToDrawWidth, imgToDrawHeight, imgX, imgY;
 
-                    ctx.drawImage(img, imgX, imgY, originalWidth * scale, originalHeight * scale);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8)); // Use 0.8 quality for better balance
+                    if (originalWidth >= originalHeight) { 
+                        let scale = targetWidth / originalWidth;
+                        imgToDrawWidth = targetWidth;
+                        imgToDrawHeight = originalHeight * scale;
+                        imgX = 0;
+                        imgY = (targetHeight - imgToDrawHeight) / 2; 
+                    } else { 
+                        let scale = targetHeight / originalHeight;
+                        imgToDrawWidth = originalWidth * scale;
+                        imgToDrawHeight = targetHeight;
+                        imgX = (targetWidth - imgToDrawWidth) / 2; 
+                        imgY = 0;
+                    }
+                    
+                    ctx.drawImage(img, imgX, imgY, imgToDrawWidth, imgToDrawHeight);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
                 };
                 img.onerror = () => {
                     console.warn("Falha ao carregar ou redimensionar imagem (Base64 inválido ou erro de rede).");
@@ -625,22 +1094,72 @@
             const doc = new jsPDF();
             addCustomFont(doc);
 
-            const nome = document.getElementById('nome').value.trim();
-            if (!nome) {
-                alert("Por favor, preencha o campo 'Nome' para gerar o relatório.");
+            const activeData = getActiveData();
+            const currentTabSuffix = activeTab === 'agenteCampo' ? '' : '_tecnico';
+
+            const nomeAgente = getElementByIdForActiveTab('nomeAgente').value.trim();
+            const telefoneAgente = getElementByIdForActiveTab('telefoneAgente').value.trim();
+            const nome = getElementByIdForActiveTab('nome').value.trim();
+            const identidade = getElementByIdForActiveTab('identidade').value.trim(); 
+            const cpf = getElementByIdForActiveTab('cpf').value.trim(); 
+            const enderecoFinalParaPDF = getElementByIdForActiveTab('endereco').value || "Não informado"; 
+            const idade = getElementByIdForActiveTab('idade').value || "Não informada";
+            const nascimento = getElementByIdForActiveTab('dataNascimento').value || "Não informado";
+            const historico = getElementByIdForActiveTab('historico').value || "Não informado";
+            const codigo = activeData.codigoAtual || gerarCodigoAtendimento();
+
+            // Desabilitar campos do agente/técnico após a primeira geração de PDF
+            if (!activeData.agenteDadosPreenchidos && nomeAgente && telefoneAgente) {
+                getElementByIdForActiveTab('nomeAgente').disabled = true;
+                getElementByIdForActiveTab('telefoneAgente').disabled = true;
+                activeData.agenteDadosPreenchidos = true;
+            }
+
+            if (!nomeAgente) {
+                alert("Por favor, preencha o campo 'Nome do Agente/Técnico Responsável' para gerar o relatório.");
+                return;
+            }
+            if (!telefoneAgente) {
+                alert("Por favor, preencha o campo 'Telefone do Agente/Técnico Responsável' para gerar o relatório.");
+                return;
+            }
+            if (!nome) { 
+                alert("Por favor, preencha o campo 'Nome do Usuário' para gerar o relatório.");
                 return;
             }
 
-            const enderecoFinalParaPDF = document.getElementById('endereco').value || "Não informado"; 
-            const idade = document.getElementById('idade').value || "Não informada";
-            const nascimento = document.getElementById('dataNascimento').value || "Não informado";
-            const historico = document.getElementById('historico').value || "Não informado";
-            const codigo = codigoAtual || gerarCodigoAtendimento();
+            const demandasSelecionadas = [];
+            const demandaOutrosCheckbox = getElementByIdForActiveTab('demandaOutros');
+            const outrosTextInput = getElementByIdForActiveTab('outrosDemandaInput');
+
+            const checkboxes = document.querySelectorAll(`input[name="demandas${currentTabSuffix}"]:checked`);
+            checkboxes.forEach(checkbox => {
+                if (checkbox.value === 'Outros') {
+                    const outrosText = outrosTextInput.value.trim();
+                    if (outrosText) {
+                        demandasSelecionadas.push(`Outros: ${outrosText}`);
+                    }
+                } else {
+                    demandasSelecionadas.push(checkbox.value);
+                }
+            });
+
+            if (demandaOutrosCheckbox.checked && outrosTextInput.value.trim() === '') {
+                alert("Você marcou 'Outros' nas demandas. Por favor, especifique a demanda no campo de texto.");
+                outrosTextInput.focus(); 
+                return;
+            }
+
+            if (demandasSelecionadas.length === 0) {
+                alert("Por favor, selecione pelo menos uma 'Demanda' ou preencha o campo 'Outros'.");
+                return;
+            }
+
 
             let yPos = 20;
 
             doc.setFontSize(18);
-            doc.text(`Relatório de Usuário`, 105, yPos, { align: 'center' });
+            doc.text(`Relatório de Usuário (${activeTab === 'agenteCampo' ? 'Agente de Campo' : 'Técnico'})`, 105, yPos, { align: 'center' });
             yPos += 15;
 
             doc.setFontSize(12);
@@ -648,13 +1167,8 @@
             yPos += 10;
             doc.text(`Data e Hora: ${new Date().toLocaleString('pt-BR')}`, 10, yPos);
             yPos += 5;
-            if (loggedInUser) {
-                doc.text(`Usuário Responsável: ${loggedInUser.username} (Tel: ${loggedInUser.phone})`, 10, yPos);
-            } else {
-                doc.text(`Usuário Responsável: Não logado`, 10, yPos);
-            }
+            doc.text(`${activeTab === 'agenteCampo' ? 'Agente Responsável' : 'Técnico Responsável'}: ${nomeAgente} (Tel: ${telefoneAgente})`, 10, yPos);
             yPos += 10;
-
 
             doc.setFontSize(14);
             doc.text(`Dados Pessoais:`, 10, yPos);
@@ -662,16 +1176,74 @@
             doc.setFontSize(12);
             doc.text(`Nome: ${nome}`, 10, yPos);
             yPos += 7;
+            doc.text(`Identidade: ${identidade || "Não informada"}`, 10, yPos); 
+            yPos += 7;
+            doc.text(`CPF: ${cpf || "Não informado"}`, 10, yPos); 
+            yPos += 7;
             doc.text(`Data de Nascimento: ${nascimento} (Idade: ${idade})`, 10, yPos);
             yPos += 7;
             doc.text(`Endereço: ${enderecoFinalParaPDF}`, 10, yPos); 
             yPos += 7;
-            doc.text(`Coordenadas: ${coordenadas || "Não coletadas"}`, 10, yPos);
+            doc.text(`Coordenadas: ${activeData.coordenadas || "Não coletadas"}`, 10, yPos);
             yPos += 15;
 
-            if (mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
+            // Fotos do Documento (Opcional)
+            if (activeData.fotosDocumento.length > 0) {
+                doc.setFontSize(14);
+                doc.text(`Fotos do Documento:`, 10, yPos);
+                yPos += 8;
+                doc.setFontSize(12);
+
+                const imgWidthDoc = 60; 
+                const imgHeightDoc = (imgWidthDoc / 4) * 3; 
+                const imgMarginDoc = 5; 
+                const startXDoc = 10; 
+                let currentXDoc = startXDoc;
+                let imagesInRowDoc = 0;
+
+                for (let i = 0; i < activeData.fotosDocumento.length; i++) {
+                    if (imagesInRowDoc === 3 || (yPos + imgHeightDoc + 10 > doc.internal.pageSize.height - 10 && imagesInRowDoc > 0)) {
+                        doc.addPage();
+                        yPos = 20; 
+                        currentXDoc = startXDoc; 
+                        imagesInRowDoc = 0; 
+                        addCustomFont(doc); 
+                    } else if (yPos + imgHeightDoc + 10 > doc.internal.pageSize.height - 10 && imagesInRowDoc === 0) {
+                         doc.addPage();
+                         yPos = 20;
+                         currentXDoc = startXDoc;
+                         imagesInRowDoc = 0;
+                         addCustomFont(doc);
+                    }
+
+                    try {
+                        const resizedFotoDoc = await resizeImage(activeData.fotosDocumento[i], 800); 
+                        if (resizedFotoDoc) {
+                            doc.addImage(resizedFotoDoc, 'JPEG', currentXDoc, yPos, imgWidthDoc, imgHeightDoc);
+                            currentXDoc += imgWidthDoc + imgMarginDoc; 
+                            imagesInRowDoc++;
+
+                            if (imagesInRowDoc === 3) { 
+                                yPos += imgHeightDoc + imgMarginDoc;
+                                currentXDoc = startXDoc;
+                                imagesInRowDoc = 0;
+                            }
+                        } else {
+                             console.warn(`Could not process document photo ${i + 1} for PDF.`);
+                        }
+                    } catch (imgError) {
+                        console.error("Erro ao adicionar imagem do documento ao PDF:", imgError);
+                    }
+                }
+                yPos += (imagesInRowDoc > 0 ? (imgHeightDoc + imgMarginDoc) : 0); 
+                if (imagesInRowDoc === 0 && yPos > 20) yPos -= (imgHeightDoc + imgMarginDoc); 
+                yPos += 5; 
+            }
+
+
+            if (activeData.mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
                  try {
-                    const response = await fetch(mapImageUrl);
+                    const response = await fetch(activeData.mapImageUrl);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const blob = await response.blob();
                     const mapBase64 = await new Promise(resolve => {
@@ -693,9 +1265,8 @@
                         doc.setFontSize(14);
                         doc.text(`Localização no Mapa:`, 10, yPos);
                         yPos += 8;
-                        // Map size for PDF
                         const mapWidth = 100;
-                        const mapHeight = (mapWidth / 4) * 3; // Maintain 4:3 aspect ratio
+                        const mapHeight = (mapWidth / 4) * 3; 
                         doc.addImage(mapBase64, 'PNG', 10, yPos, mapWidth, mapHeight); 
                         yPos += mapHeight + 10;
                     } else {
@@ -707,7 +1278,7 @@
                     doc.text(`(Erro ao carregar mapa para PDF)`, 10, yPos);
                     yPos += 10;
                 }
-            } else if (mapImageUrl && (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI")) {
+            } else if (activeData.mapImageUrl && (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI")) {
                 doc.text(`(Mapa não incluído: Chave de API do Google ausente/inválida)`, 10, yPos);
                 yPos += 10;
             }
@@ -721,48 +1292,60 @@
             doc.text(textoQuebrado, 10, yPos);
             yPos += textoQuebrado.length * 7 + 10;
 
+            // Adicionar Demandas ao PDF
             doc.setFontSize(14);
-            doc.text(`Fotos:`, 10, yPos);
+            doc.text(`Demandas:`, 10, yPos);
+            yPos += 8;
+            doc.setFontSize(12);
+            if (demandasSelecionadas.length > 0) {
+                const demandasTexto = demandasSelecionadas.join(', ');
+                let demandasQuebradas = doc.splitTextToSize(demandasTexto, 180);
+                doc.text(demandasQuebradas, 10, yPos);
+                yPos += demandasQuebradas.length * 7 + 10;
+            } else {
+                doc.text(`Nenhuma demanda selecionada.`, 10, yPos);
+                yPos += 10;
+            }
+            yPos += 5; 
+
+            doc.setFontSize(14);
+            doc.text(`Fotos do Usuário:`, 10, yPos); 
             yPos += 8;
             doc.setFontSize(12);
 
-            // PDF image layout variables
-            const imgWidth = 60; // Desired width for each image in PDF (mm)
-            const imgHeight = (imgWidth / 4) * 3; // Calculated height for 4:3 aspect ratio (mm)
-            const imgMargin = 5; // Margin between images (mm)
-            const startX = 10; // Starting X position for images
-            let currentX = startX;
-            let imagesInRow = 0;
+            const imgWidthPdf = 60; 
+            const imgHeightPdf = (imgWidthPdf / 4) * 3; 
+            const imgMarginPdf = 5; 
+            const startXPdf = 10; 
+            let currentXPdf = startXPdf;
+            let imagesInRowPdf = 0;
 
-            for (let i = 0; i < fotos.length; i++) {
-                // Check if current row has space for new image, or if it's a new page
-                if (imagesInRow === 3 || (yPos + imgHeight + 10 > doc.internal.pageSize.height - 10 && imagesInRow > 0)) {
+            for (let i = 0; i < activeData.fotos.length; i++) {
+                if (imagesInRowPdf === 3 || (yPos + imgHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf > 0)) {
                     doc.addPage();
-                    yPos = 20; // Reset yPos for new page
-                    currentX = startX; // Reset X position
-                    imagesInRow = 0; // Reset image counter for new row/page
-                    addCustomFont(doc); // Re-add font for new page
-                } else if (yPos + imgHeight + 10 > doc.internal.pageSize.height - 10 && imagesInRow === 0) {
-                     // If it's the first image of a new row and no space, just add page
+                    yPos = 20; 
+                    currentXPdf = startXPdf; 
+                    imagesInRowPdf = 0; 
+                    addCustomFont(doc); 
+                } else if (yPos + imgHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf === 0) {
                      doc.addPage();
                      yPos = 20;
-                     currentX = startX;
-                     imagesInRow = 0;
+                     currentXPdf = startXPdf;
+                     imagesInRowPdf = 0;
                      addCustomFont(doc);
                 }
 
-
                 try {
-                    const resizedFoto = await resizeImage(fotos[i], 600); // Pass a target width (e.g., 600px for good quality)
+                    const resizedFoto = await resizeImage(activeData.fotos[i], 800); 
                     if (resizedFoto) {
-                        doc.addImage(resizedFoto, 'JPEG', currentX, yPos, imgWidth, imgHeight);
-                        currentX += imgWidth + imgMargin; // Move X for next image
-                        imagesInRow++;
+                        doc.addImage(resizedFoto, 'JPEG', currentXPdf, yPos, imgWidthPdf, imgHeightPdf);
+                        currentXPdf += imgWidthPdf + imgMarginPdf; 
+                        imagesInRowPdf++;
 
-                        if (imagesInRow === 3) { // If 3 images in row, reset for next row
-                            yPos += imgHeight + imgMargin;
-                            currentX = startX;
-                            imagesInRow = 0;
+                        if (imagesInRowPdf === 3) { 
+                            yPos += imgHeightPdf + imgMarginPdf;
+                            currentXPdf = startXPdf;
+                            imagesInRowPdf = 0;
                         }
                     } else {
                          console.warn(`Could not process photo ${i + 1} for PDF.`);
@@ -771,128 +1354,101 @@
                     console.error("Erro ao adicionar imagem ao PDF:", imgError);
                 }
             }
+            if (activeData.fotos.length === 0) {
+                 doc.text("Nenhuma foto anexada.", 10, yPos);
+                 yPos += 10;
+            }
 
-            doc.save(`relatorio-${codigo}.pdf`);
+            activeData.pdfFileName = `relatorio-${codigo}.pdf`;
+            activeData.pdfDataUri = doc.output('datauristring'); 
+
+            doc.save(activeData.pdfFileName);
+
+            document.getElementById('btnEnviarWhatsApp').disabled = false;
         }
 
         function limparFormulario() {
-            document.getElementById('nome').value = '';
-            document.getElementById('endereco').value = '';
-            document.getElementById('numero').value = '';
-            document.getElementById('complemento').value = '';
-            document.getElementById('dataNascimento').value = '';
-            document.getElementById('idade').value = '';
-            document.getElementById('historico').value = '';
-            document.getElementById('contador').innerText = '0 / 5000';
-            document.getElementById('gps').innerText = '';
+            const activeData = getActiveData();
+            const currentTabSuffix = activeTab === 'agenteCampo' ? '' : '_tecnico';
+
+            getElementByIdForActiveTab('nome').value = '';
+            getElementByIdForActiveTab('identidade').value = ''; 
+            getElementByIdForActiveTab('cpf').value = ''; 
+            getElementByIdForActiveTab('endereco').value = '';
+            getElementByIdForActiveTab('numero').value = '';
+            getElementByIdForActiveTab('complemento').value = '';
+            getElementByIdForActiveTab('dataNascimento').value = '';
+            getElementByIdForActiveTab('idade').value = '';
+            getElementByIdForActiveTab('historico').value = '';
+            getElementByIdForActiveTab('contador').innerText = '0 / 5000';
+            getElementByIdForActiveTab('gps').innerText = '';
             
-            fotos = [];
-            document.getElementById('fotosPreview').innerHTML = '';
+            activeData.fotos = [];
+            getElementByIdForActiveTab('fotosPreview').innerHTML = '';
+            activeData.fotosDocumento = []; 
+            getElementByIdForActiveTab('fotosDocumentoPreview').innerHTML = ''; 
 
-            pararCamera();
+            pararCamera('global'); 
+            pararCameraDocumento('global');
 
-            coordenadas = "";
-            enderecoBaseDetalhes = {};
-            mapImageUrl = ""; 
+            activeData.coordenadas = "";
+            activeData.enderecoBaseDetalhes = {};
+            activeData.mapImageUrl = ""; 
             document.getElementById('mapPreview').src = "";
             document.getElementById('mapPreview').style.display = 'none';
 
+            // Desmarca todos os checkboxes de demanda e limpa o campo "Outros"
+            document.querySelectorAll(`input[name="demandas${currentTabSuffix}"]:checked`).forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            getElementByIdForActiveTab('outrosDemandaInput').value = '';
+            getElementByIdForActiveTab('outrosDemandaContainer').style.display = 'none';
+
+            document.getElementById('btnEnviarWhatsApp').disabled = true;
+            activeData.pdfDataUri = null; 
+            activeData.pdfFileName = ""; 
+
+            // Re-habilita os campos do agente/técnico para a próxima entrada, se eles tiverem sido desabilitados
+            getElementByIdForActiveTab('nomeAgente').disabled = false;
+            getElementByIdForActiveTab('telefoneAgente').disabled = false;
+            activeData.agenteDadosPreenchidos = false;
+
             gerarCodigoAtendimento();
-            alert("Formulário limpo e novo código de relatório gerado!");
         }
 
-        // --- User Authentication Functions ---
-        let isRegistering = false; // To toggle between login and register
+        function enviarWhatsApp() {
+            const activeData = getActiveData();
 
-        function loadUsers() {
-            const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-            return usersJson ? JSON.parse(usersJson) : [];
-        }
+            if (!activeData.pdfDataUri || document.getElementById('btnEnviarWhatsApp').disabled) {
+                alert("Nenhum relatório PDF foi gerado ou o botão está desabilitado.");
+                return;
+            }
 
-        function saveUsers(users) {
-            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-        }
+            const mensagem = encodeURIComponent(`Relatório ${activeData.pdfFileName}, enviado automaticamente via sistema. Este relatório não poderá ser modificado e ficará a cargo do assistente social, para a sua revisão. Qualquer dúvida, entrar em contato com o agente relacionado.`);
 
-        function toggleLoginRegister() {
-            isRegistering = !isRegistering;
-            const loginTitle = document.getElementById('loginTitle');
-            const loginPhone = document.getElementById('loginPhone');
-            const loginButton = document.getElementById('loginButton');
-            const toggleButton = document.getElementById('toggleLoginRegister');
+            if (navigator.share) {
+                const byteCharacters = atob(activeData.pdfDataUri.split(',')[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/pdf' });
+                const file = new File([blob], activeData.pdfFileName, { type: 'application/pdf' });
 
-            if (isRegistering) {
-                loginTitle.innerText = "Cadastre-se";
-                loginPhone.style.display = "block";
-                loginButton.innerText = "Cadastrar";
-                toggleButton.innerText = "Já tem conta? Entrar";
+                navigator.share({
+                    files: [file],
+                    title: activeData.pdfFileName,
+                    text: decodeURIComponent(mensagem), 
+                })
+                .then(() => console.log('Compartilhado com sucesso'))
+                .catch((error) => console.error('Erro ao compartilhar:', error));
             } else {
-                loginTitle.innerText = "Entrar";
-                loginPhone.style.display = "none";
-                loginButton.innerText = "Entrar";
-                toggleButton.innerText = "Não tem conta? Cadastre-se";
+                alert("Seu navegador não suporta o compartilhamento direto de arquivos via WhatsApp. A mensagem será pré-preenchida, mas você precisará anexar o PDF manualmente.");
+                const whatsappUrl = `https://wa.me/?text=${mensagem}`;
+                window.open(whatsappUrl, '_blank');
             }
         }
-
-        function handleLoginRegister() {
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const phone = document.getElementById('loginPhone').value.trim();
-            let users = loadUsers();
-
-            if (isRegistering) {
-                // Register
-                if (!username || !password || !phone) {
-                    alert("Por favor, preencha todos os campos para se cadastrar.");
-                    return;
-                }
-                if (users.some(u => u.username === username)) {
-                    alert("Nome de usuário já existe. Escolha outro.");
-                    return;
-                }
-                users.push({ username, password, phone });
-                saveUsers(users);
-                alert("Usuário cadastrado com sucesso! Agora você pode fazer login.");
-                isRegistering = false; // Switch back to login view
-                toggleLoginRegister(); // Update UI
-                document.getElementById('loginUsername').value = '';
-                document.getElementById('loginPassword').value = '';
-                document.getElementById('loginPhone').value = '';
-            } else {
-                // Login
-                if (!username || !password) {
-                    alert("Por favor, preencha nome de usuário e senha.");
-                    return;
-                }
-                const user = users.find(u => u.username === username && u.password === password);
-                if (user) {
-                    loggedInUser = user;
-                    document.getElementById('loginContainer').style.display = 'none'; // Hide login
-                    document.getElementById('appContainer').style.display = 'block'; // Show app
-                    document.getElementById('mainTaskbar').style.display = 'flex'; // Show taskbar
-                    document.getElementById('loginStatus').innerText = `Logado como: ${loggedInUser.username}`;
-                    document.getElementById('loginStatus').style.display = 'block';
-                    gerarCodigoAtendimento(); // Generate initial report code
-                    alert(`Bem-vindo, ${loggedInUser.username}!`);
-                } else {
-                    alert("Nome de usuário ou senha incorretos.");
-                }
-            }
-        }
-
-        // --- Initial Load ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check if there are any registered users. If not, force registration view.
-            const users = loadUsers();
-            if (users.length === 0) {
-                isRegistering = true;
-                toggleLoginRegister();
-                alert("Nenhum usuário cadastrado. Por favor, cadastre um novo usuário.");
-            } else {
-                // Keep the default login view
-                toggleLoginRegister(); // Call once to ensure initial state is login
-                isRegistering = false;
-            }
-        });
     </script>
 </body>
 </html>
