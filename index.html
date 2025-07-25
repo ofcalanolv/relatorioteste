@@ -36,16 +36,17 @@
             -webkit-font-smoothing: antialiased; /* Suavização de fonte */
             -moz-osx-font-smoothing: grayscale; /* Suavização de fonte */
         }
-        
-        h2 { 
-            text-align: center; 
+
+        h2 {
+            text-align: center;
             color: var(--primary-color);
-            margin-bottom: 25px;
-            font-size: 1.8em;
+            margin-top: 15px; /* Restaura a margem superior */
+            margin-bottom: 5px; /* Espaçamento menor para o código */
+            font-size: 2em;
             font-weight: 600;
         }
 
-        h3 { 
+        h3 {
             text-align: left; /* Alinhamento para títulos de grupo */
             color: var(--text-dark);
             margin-top: 0;
@@ -64,10 +65,8 @@
             margin-bottom: 30px;
         }
 
-        input[type="text"],
-        input[type="tel"],
-        input[type="date"], /* Adicionei para caso mude o input type */
-        select, /* Estilo para select dropdown */
+        input,
+        select,
         textarea {
             display: block;
             margin: 15px 0; /* Mais espaçamento vertical */
@@ -170,31 +169,22 @@
         }
 
         #codigoDisplay, #codigoDisplayTecnico {
-            font-size: 1.1em;
-            font-weight: bold;
+            font-size: 0.85em; /* Tamanho menor */
+            font-weight: 500;
             text-align: center;
-            margin-top: 15px;
-            margin-bottom: 25px;
-            color: var(--primary-dark);
-            padding: 8px 15px;
+            margin-top: 5px; /* Ajuste para ficar abaixo do h2 */
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            padding: 4px 8px; /* Padding menor */
             background: var(--bg-medium);
-            border-radius: 8px;
-            display: inline-block; /* Para centralizar com text-align */
-            width: auto; /* Para não ocupar 100% da largura */
-            max-width: 90%; /* Limitar a largura em telas menores */
+            border-radius: 6px;
+            display: inline-block; /* Para centralizar com text-align no pai */
+            width: auto;
+            max-width: 80%;
             box-sizing: border-box;
         }
 
-        #mapPreview {
-            width: 100%;
-            height: 180px; /* Altura um pouco maior para o mapa */
-            background-color: var(--bg-medium);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-top: 20px;
-            display: none;
-            object-fit: cover; /* Garante que a imagem preencha a área */
-        }
+        /* Removido o estilo para #mapPreview, pois o elemento será removido */
 
         .camera-controls {
             display: flex;
@@ -292,7 +282,7 @@
             }
             .inline-fields { flex-direction: column; gap: 0; }
             .inline-fields input, .inline-fields select { margin-bottom: 10px; } /* Ajuste para select */
-            
+
             .camera-controls { flex-direction: column; gap: 8px; }
 
             .taskbar {
@@ -403,7 +393,18 @@
             background-size: 20px;
             padding-right: 40px; /* Espaço para o ícone */
         }
-        select option[value=""] {
+        select option, select optgroup {
+            background-color: var(--bg-light); /* Cor de fundo das opções */
+            color: var(--text-dark);
+        }
+        select option:hover, select option:focus {
+            background-color: var(--primary-color); /* Cor de fundo da opção em foco/hover */
+            color: var(--text-light);
+        }
+        select option:disabled {
+            color: var(--secondary-color); /* Cor para opções desabilitadas */
+        }
+        select option:first-child {
             color: var(--secondary-color); /* Cor para o placeholder */
         }
 
@@ -417,10 +418,8 @@
 
     <div id="agenteCampo" class="tab-content active">
         <div class="container" id="appContainerAgente">
-            <h2>Cadastro de Usuário - Agente de Campo</h2>
-            <div id="codigoDisplay"></div>
-            
-            <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável">
+            <h2>Cadastro de Usuário</h2>
+            <div id="codigoDisplay"></div> <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável">
             <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*">
 
             <input type="text" id="nome" placeholder="Nome do Usuário">
@@ -432,8 +431,6 @@
                 <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
                 <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
             </div>
-            <img id="mapPreview" alt="Mapa da Localização">
-
             <input type="tel" id="dataNascimento" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'agente')" onchange="calcularIdade('agente')">
             <input type="text" id="idade" placeholder="Idade" readonly>
 
@@ -498,10 +495,8 @@
 
     <div id="tecnico" class="tab-content">
         <div class="container" id="appContainerTecnico">
-            <h2>Cadastro de Usuário - Técnico</h2>
-            <div id="codigoDisplayTecnico"></div>
-            
-            <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável">
+            <h2>Cadastro de Usuário</h2>
+            <div id="codigoDisplayTecnico"></div> <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável">
             <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*">
 
             <input type="text" id="nome_tecnico" placeholder="Nome do Usuário">
@@ -513,7 +508,7 @@
                 <input type="text" id="numero_tecnico" placeholder="Número" oninput="atualizarEnderecoCompleto('tecnico')">
                 <input type="text" id="complemento_tecnico" placeholder="Complemento" oninput="atualizarEnderecoCompleto('tecnico')">
             </div>
-            <div id="mapPreviewTecnico" style="display:none;"></div> <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'tecnico')" onchange="calcularIdade('tecnico')">
+            <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'tecnico')" onchange="calcularIdade('tecnico')">
             <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
 
             <select id="cadUnico_tecnico" required>
@@ -621,16 +616,15 @@
     </div>
 
     <script>
-        // Remova ou substitua esta chave com a sua chave real do Google Maps API
-        const Maps_API_KEY = "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E"; 
-
+        // Removida a constante Maps_API_KEY
+        
         // Dados para Agente de Campo
         let dadosAgenteCampo = {
             fotos: [], // Fotos do usuário
             coordenadas: "",
-            enderecoBaseDetalhes: {},
+            enderecoBaseDetalhes: {}, // Mantido para o endereço textual
             codigoAtual: "",
-            mapImageUrl: "", 
+            mapImageUrl: "", // Não será mais usado, mas mantido para evitar erros em outras partes
             pdfDataUri: null, 
             pdfFileName: "",
             agenteDadosPreenchidos: false,
@@ -653,9 +647,9 @@
         let dadosTecnico = {
             fotos: [], 
             coordenadas: "",
-            enderecoBaseDetalhes: {},
+            enderecoBaseDetalhes: {}, // Mantido para o endereço textual
             codigoAtual: "",
-            mapImageUrl: "", 
+            mapImageUrl: "", // Não será mais usado, mas mantido para evitar erros em outras partes
             pdfDataUri: null, 
             pdfFileName: "",
             agenteDadosPreenchidos: false, // Pode ser renomeado para 'tecnicoDadosPreenchidos'
@@ -722,9 +716,8 @@
                 if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento'); // NOVO
                 if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico'); // NOVO
                 
-                // Campos de camera e mapPreview são compartilhados no HTML
-                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn' ||
-                    idBase === 'mapPreview') {
+                // Campos de camera são compartilhados no HTML, mapPreview foi removido
+                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn') {
                     return document.getElementById(idBase);
                 }
                 
@@ -1140,17 +1133,9 @@
         async function coletarGPS() {
             const activeData = getActiveData();
             const gpsDisplay = getElementByIdForActiveTab('gps');
-            const mapPreview = document.getElementById('mapPreview'); // Map preview é compartilhado
-
+            
             gpsDisplay.innerText = "Coletando localização...";
-            mapPreview.style.display = 'none';
-            activeData.mapImageUrl = ""; 
-
-            if (!Maps_API_KEY || Maps_API_KEY === "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E") {
-                alert("Por favor, configure sua CHAVE DE API DO GOOGLE MAPS no código para que o mapa funcione.");
-                gpsDisplay.innerText = "Erro: API Key do Google não configurada.";
-                return;
-            }
+            activeData.mapImageUrl = ""; // Garante que a URL do mapa seja limpa
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -1167,22 +1152,11 @@
 
                         atualizarEnderecoCompleto(activeTab === 'agenteCampo' ? 'agente' : 'tecnico');
 
-                        const zoom = 15;
-                        const size = "400x200"; 
-                        const marker = `markers=color:red%7Clabel:P%7C${lat},${lon}`;
-                        
-                        activeData.mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=${zoom}&size=${size}&${marker}&key=${Maps_API_KEY}`;
-                        
-                        mapPreview.src = activeData.mapImageUrl;
-                        mapPreview.style.display = 'block';
-
                     } catch (fetchError) {
-                        console.error("Erro ao obter endereço ou mapa:", fetchError);
+                        console.error("Erro ao obter endereço:", fetchError);
                         getElementByIdForActiveTab('endereco').value = "Não foi possível obter o endereço detalhado.";
                         activeData.enderecoBaseDetalhes = {};
-                        mapPreview.style.display = 'none';
-                        activeData.mapImageUrl = "";
-                        alert("Erro ao carregar endereço ou mapa. Verifique a API Key do Google e a conexão.");
+                        alert("Erro ao carregar endereço. Verifique a conexão.");
                     }
                 }, (geoError) => {
                     console.error("Erro de geolocalização:", geoError);
@@ -1197,14 +1171,12 @@
                     alert(errorMessage);
                     gpsDisplay.innerText = errorMessage;
                     activeData.enderecoBaseDetalhes = {};
-                    mapPreview.style.display = 'none';
                     activeData.mapImageUrl = "";
                 });
             } else {
                 alert("Geolocalização não suportada neste navegador.");
                 gpsDisplay.innerText = "Geolocalização não suportada.";
                 activeData.enderecoBaseDetalhes = {};
-                mapPreview.style.display = 'none';
                 activeData.mapImageUrl = "";
             }
         }
@@ -1362,12 +1334,14 @@
             let yPos = 20;
 
             doc.setFontSize(18);
-            doc.text(`Relatório de Usuário (${activeTab === 'agenteCampo' ? 'Agente de Campo' : 'Técnico'})`, 105, yPos, { align: 'center' });
-            yPos += 15;
+            doc.text(`Relatório de Usuário`, 105, yPos, { align: 'center' });
+            yPos += 10; // Reduzido o espaço
 
+            doc.setFontSize(10); // Tamanho menor
+            doc.text(`Relatório nº: ${codigo}`, 105, yPos, { align: 'center' });
+            yPos += 10; // Reduzido o espaço
+            
             doc.setFontSize(12);
-            doc.text(`Relatório nº: ${codigo}`, 10, yPos);
-            yPos += 10;
             doc.text(`Data e Hora: ${new Date().toLocaleString('pt-BR')}`, 10, yPos);
             yPos += 5;
             doc.text(`${activeTab === 'agenteCampo' ? 'Agente Responsável' : 'Técnico Responsável'}: ${nomeAgente} (Tel: ${telefoneAgente})`, 10, yPos);
@@ -1421,47 +1395,8 @@
                 yPos += relatorioQuebrado.length * 7 + 10;
             }
 
-            if (activeData.mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E") {
-                 try {
-                    const response = await fetch(activeData.mapImageUrl);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const blob = await response.blob();
-                    const mapBase64 = await new Promise(resolve => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.onerror = () => {
-                            console.error("FileReader failed to convert map blob to Base64.");
-                            resolve(null);
-                        };
-                        reader.readAsDataURL(blob);
-                    });
-
-                    if (mapBase64) {
-                        if (yPos + 80 > doc.internal.pageSize.height - 10) {
-                            doc.addPage();
-                            yPos = 20;
-                            addCustomFont(doc);
-                        }
-                        doc.setFontSize(14);
-                        doc.text(`Localização no Mapa:`, 10, yPos);
-                        yPos += 8;
-                        const mapWidth = 100;
-                        const mapHeight = (mapWidth / 4) * 3; 
-                        doc.addImage(mapBase64, 'PNG', 10, yPos, mapWidth, mapHeight); 
-                        yPos += mapHeight + 10;
-                    } else {
-                         doc.text(`(Falha ao processar mapa para PDF - Base64 vazio)`, 10, yPos);
-                         yPos += 10;
-                    }
-                } catch (mapImgError) {
-                    console.error("Erro ao adicionar imagem do mapa ao PDF:", mapImgError);
-                    doc.text(`(Erro ao carregar mapa para PDF)`, 10, yPos);
-                    yPos += 10;
-                }
-            } else if (activeData.mapImageUrl && (!Maps_API_KEY || Maps_API_KEY === "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E")) {
-                doc.text(`(Mapa não incluído: Chave de API do Google ausente/inválida)`, 10, yPos);
-                yPos += 10;
-            }
+            // Removido o bloco de código para adicionar o mapa ao PDF
+            
             yPos += 5;
 
             doc.setFontSize(14);
@@ -1587,9 +1522,9 @@
 
             activeData.coordenadas = "";
             activeData.enderecoBaseDetalhes = {};
-            activeData.mapImageUrl = ""; 
-            document.getElementById('mapPreview').src = "";
-            document.getElementById('mapPreview').style.display = 'none';
+            activeData.mapImageUrl = ""; // Limpa a URL do mapa, embora não seja mais usada
+            // Removido: document.getElementById('mapPreview').src = "";
+            // Removido: document.getElementById('mapPreview').style.display = 'none';
 
             // Desmarca todos os checkboxes de demanda e limpa o campo "Outros"
             document.querySelectorAll(`input[name="demandas${currentTabSuffix}"]:checked`).forEach(checkbox => {
