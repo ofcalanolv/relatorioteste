@@ -6,19 +6,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 10px; background: #f5f5f5; }
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 10px; 
+            background: #f5f5f5; 
+            padding-bottom: 70px; /* Add padding for the fixed taskbar */
+        }
         h2, h3 { text-align: center; }
-        .container { max-width: 500px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        input, textarea, button { display: block; margin: 10px 0; padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+        .container { 
+            max-width: 500px; 
+            margin: auto; 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            margin-bottom: 20px; /* Space above the taskbar */
+        }
+        input, textarea { 
+            display: block; 
+            margin: 10px 0; 
+            padding: 10px; 
+            width: 100%; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
         .inline-fields { display: flex; gap: 10px; }
         .inline-fields input { flex: 1; }
-        button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:hover { background: #0056b3; }
         #fotosPreview { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
         .foto-container { position: relative; display: inline-block; }
         .foto-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; }
-        .remove-btn { position: absolute; top: -8px; right: -8px; background: red; color: white; border: none; border-radius: 50%; font-size: 14px; width: 20px; height: 20px; cursor: pointer; }
+        .remove-btn { 
+            position: absolute; 
+            top: -8px; 
+            right: -8px; 
+            background: red; 
+            color: white; 
+            border: none; 
+            border-radius: 50%; 
+            font-size: 14px; 
+            width: 20px; 
+            height: 20px; 
+            cursor: pointer; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
         #gps { font-size: 14px; color: #555; }
         #contador { font-size: 12px; text-align: right; color: #555; margin-top: -8px; }
         #codigoDisplay { font-size: 14px; font-weight: bold; text-align: center; margin-top: 10px; color: #333; }
@@ -39,10 +76,79 @@
         .camera-controls button {
             flex: 1;
             margin: 0;
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer;
         }
+        .camera-controls button:hover { background: #0056b3; }
+
+        /* Taskbar Styles */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            z-index: 1000; /* Ensure it stays on top */
+        }
+        .taskbar button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+            flex: 1; /* Distribute space evenly */
+            margin: 0 2px; /* Small margin between buttons */
+        }
+        .taskbar button:hover {
+            background: #555;
+        }
+        .taskbar button i {
+            font-size: 24px; /* Icon size */
+        }
+        .taskbar button span {
+            font-size: 10px; /* Label size */
+            white-space: nowrap; /* Keep label on one line */
+        }
+        
+        /* Specific button colors */
+        #btnColetarGPS { background: #007bff; }
+        #btnColetarGPS:hover { background: #0056b3; }
+        #btnTirarFoto { background: #28a745; }
+        #btnTirarFoto:hover { background: #218838; }
+        #btnGerarPDF { background: #ffc107; color: #333; } /* Adjusted color for visibility */
+        #btnGerarPDF:hover { background: #e0a800; }
+        #btnLimparFormulario { background: #dc3545; }
+        #btnLimparFormulario:hover { background: #c82333; }
+
+
         @media (max-width: 600px) {
             .inline-fields { flex-direction: column; }
             .camera-controls { flex-direction: column; }
+            .taskbar button {
+                padding: 5px 5px; /* Adjust padding for smaller screens */
+            }
+            .taskbar button i {
+                font-size: 20px; /* Smaller icons on small screens */
+            }
+            .taskbar button span {
+                font-size: 9px; /* Smaller labels on small screens */
+            }
         }
     </style>
 </head>
@@ -51,22 +157,20 @@
         <h2>Coleta de Dados</h2>
         <div id="codigoDisplay"></div>
         <input type="text" id="nome" placeholder="Nome">
-        <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)">
+        <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
         <div class="inline-fields">
             <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
             <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
         </div>
-        <button onclick="coletarGPS()">Coletar Endereço Atual</button>
         <img id="mapPreview" alt="Mapa da Localização">
 
-        <input type="date" id="dataNascimento" placeholder="Data de Nascimento" onchange="calcularIdade()">
+        <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" oninput="formatarDataNascimento(this)" onchange="calcularIdade()" maxlength="10">
         <input type="text" id="idade" placeholder="Idade" readonly>
 
         <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
         <div id="contador">0 / 5000</div>
 
         <h3>Fotos</h3>
-        <button onclick="tirarFoto()">Adicionar Foto</button>
         <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
         <div class="camera-controls">
             <button id="captureBtn" style="display:none;" onclick="capturarImagem()">Capturar Imagem</button>
@@ -76,9 +180,25 @@
 
         <p id="gps"></p>
 
-        <h3>Relatório</h3>
-        <button onclick="gerarPDF()">Gerar PDF</button>
-        <button onclick="limparFormulario()" style="background: #6c757d;">Limpar Formulário</button>
+        </div>
+
+    <div class="taskbar">
+        <button id="btnColetarGPS" onclick="coletarGPS()">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Endereço</span>
+        </button>
+        <button id="btnTirarFoto" onclick="tirarFoto()">
+            <i class="fas fa-camera"></i>
+            <span>Foto</span>
+        </button>
+        <button id="btnGerarPDF" onclick="gerarPDF()">
+            <i class="fas fa-file-pdf"></i>
+            <span>Gerar PDF</span>
+        </button>
+        <button id="btnLimparFormulario" onclick="limparFormulario()">
+            <i class="fas fa-broom"></i>
+            <span>Limpar</span>
+        </button>
     </div>
 
     <script>
@@ -112,17 +232,47 @@
 
         gerarCodigoAtendimento();
 
+        // New function to format date input
+        function formatarDataNascimento(input) {
+            let value = input.value.replace(/\D/g, ''); // Remove non-digits
+            let formattedValue = '';
+
+            if (value.length > 0) {
+                formattedValue += value.substring(0, 2);
+            }
+            if (value.length > 2) {
+                formattedValue += '/' + value.substring(2, 4);
+            }
+            if (value.length > 4) {
+                formattedValue += '/' + value.substring(4, 8);
+            }
+            input.value = formattedValue;
+        }
+
         function calcularIdade() {
             const nascimentoStr = document.getElementById('dataNascimento').value;
             const idadeInput = document.getElementById('idade');
-            if (!nascimentoStr) {
+            if (!nascimentoStr || nascimentoStr.length !== 10 || !nascimentoStr.includes('/')) {
+                idadeInput.value = '';
+                return;
+            }
+
+            // Parse DD/MM/AAAA to YYYY-MM-DD for Date object
+            const partes = nascimentoStr.split('/');
+            if (partes.length !== 3) {
+                idadeInput.value = '';
+                return;
+            }
+            const nascFormatado = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            const nasc = new Date(nascFormatado);
+
+            if (isNaN(nasc.getTime())) { // Check for invalid date
                 idadeInput.value = '';
                 return;
             }
 
             const hoje = new Date();
-            const nasc = new Date(nascimentoStr);
-
+            
             let anos = hoje.getFullYear() - nasc.getFullYear();
             let meses = hoje.getMonth() - nasc.getMonth();
             let dias = hoje.getDate() - nasc.getDate();
@@ -152,16 +302,23 @@
             const video = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
+
+            // If camera is already open, do nothing or just focus UI
+            if (cameraStream && cameraStream.active) {
+                video.style.display = "block";
+                captureBtn.style.display = "block";
+                stopCameraBtn.style.display = "block";
+                return; 
+            }
+
             try {
-                // Ensure playsinline is set for iOS for inline playback
                 video.setAttribute('playsinline', ''); 
-                // Request 'environment' (rear) camera, if available
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 video.srcObject = cameraStream;
                 video.style.display = "block";
-                captureBtn.style.display = "block"; // Ensure capture button is visible
+                captureBtn.style.display = "block"; 
                 stopCameraBtn.style.display = "block";
-                video.play(); // Start playing the stream
+                video.play();
             } catch (err) {
                 console.error("Erro ao acessar a câmera:", err);
                 alert("Não foi possível acessar a câmera. Verifique as permissões do navegador ou se a câmera está em uso.");
@@ -177,9 +334,9 @@
             const stopCameraBtn = document.getElementById('stopCameraBtn');
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
-                video.srcObject = null; // Clear the video source
-                cameraStream = null; // Clear the stream object
-                video.pause(); // Pause video playback
+                video.srcObject = null; 
+                cameraStream = null; 
+                video.pause(); 
             }
             video.style.display = "none";
             captureBtn.style.display = "none";
@@ -188,7 +345,7 @@
 
         function capturarImagem() {
             const video = document.getElementById('video');
-            if (!video.srcObject) { // Prevent capturing if camera is not active
+            if (!video.srcObject) { 
                 alert("Câmera não está ativa para captura.");
                 return;
             }
@@ -218,7 +375,7 @@
             container.appendChild(removeBtn);
             previewDiv.appendChild(container);
 
-            pararCamera(); // Stop camera after capturing
+            // Do NOT call pararCamera() here to allow multiple captures
         }
 
         function atualizarEnderecoCompleto() {
@@ -496,7 +653,7 @@
             fotos = [];
             document.getElementById('fotosPreview').innerHTML = '';
 
-            pararCamera();
+            pararCamera(); // Ensure camera is stopped when clearing form
 
             coordenadas = "";
             enderecoBaseDetalhes = {};
