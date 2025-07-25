@@ -8,89 +8,216 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; /* Remove default body margin */
-            background: #f5f5f5; 
-            padding-bottom: 70px; /* Add padding for the fixed taskbar */
+        /* Variáveis CSS para cores */
+        :root {
+            --primary-color: #007bff; /* Azul para destaque/ações */
+            --primary-dark: #0056b3;
+            --secondary-color: #6c757d; /* Cinza para texto secundário */
+            --bg-light: #f8f9fa; /* Fundo claro */
+            --bg-medium: #e9ecef; /* Fundo de elementos */
+            --text-dark: #343a40; /* Texto principal */
+            --text-light: #ffffff; /* Texto claro */
+            --border-color: #dee2e6; /* Cor de borda */
+            --red-color: #dc3545; /* Vermelho para alerta/erro */
+            --green-color: #28a745; /* Verde para sucesso */
+            --whatsapp-green: #25d366; /* Verde WhatsApp */
+            --whatsapp-green-dark: #1da851;
+            --yellow-color: #ffc107; /* Amarelo para aviso */
+            --yellow-dark: #e0a800;
         }
-        h2, h3 { text-align: center; }
-        .container { 
-            max-width: 500px; 
-            margin: 10px auto; /* Adjust margin-top for tabs */
-            background: #fff; 
-            padding: 15px; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-            margin-bottom: 20px; /* Space above the taskbar */
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; /* Fonte mais profissional */
+            margin: 0;
+            background: var(--bg-light);
+            padding-bottom: 70px; /* Padding para a taskbar fixa */
+            color: var(--text-dark);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased; /* Suavização de fonte */
+            -moz-osx-font-smoothing: grayscale; /* Suavização de fonte */
         }
-        input, textarea { 
-            display: block; 
-            margin: 10px 0; 
-            padding: 10px; 
-            width: 100%; 
-            border: 1px solid #ccc; 
-            border-radius: 5px; 
-            font-size: 16px; 
-            box-sizing: border-box; /* Include padding in element's total width and height */
+        
+        h2 { 
+            text-align: center; 
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 600;
         }
-        /* Style for disabled inputs and buttons */
-        input:disabled, textarea:disabled, button:disabled {
-            background-color: #e9e9e9;
-            color: #555;
+
+        h3 { 
+            text-align: left; /* Alinhamento para títulos de grupo */
+            color: var(--text-dark);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 600px; /* Um pouco mais largo para melhor espaçamento */
+            margin: 20px auto;
+            background: var(--text-light);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Sombra mais suave */
+            margin-bottom: 30px;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="date"], /* Adicionei para caso mude o input type */
+        textarea {
+            display: block;
+            margin: 15px 0; /* Mais espaçamento vertical */
+            padding: 12px 15px;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 8px; /* Bordas mais arredondadas */
+            font-size: 1em;
+            color: var(--text-dark);
+            background-color: var(--bg-light);
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Sombra no foco */
+            outline: none;
+        }
+
+        input:disabled, textarea:disabled {
+            background-color: var(--bg-medium);
+            color: var(--secondary-color);
             cursor: not-allowed;
-            opacity: 0.7; /* Make disabled buttons slightly faded */
+            opacity: 0.9;
         }
-        .inline-fields { display: flex; gap: 10px; }
-        .inline-fields input { flex: 1; }
-        #fotosPreview, #fotosDocumentoPreview { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .foto-container { position: relative; display: inline-block; }
-        .foto-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; }
-        .remove-btn { 
-            position: absolute; 
-            top: -8px; 
-            right: -8px; 
-            background: red; 
-            color: white; 
-            border: none; 
-            border-radius: 50%; 
-            font-size: 14px; 
-            width: 20px; 
-            height: 20px; 
-            cursor: pointer; 
+
+        .inline-fields {
+            display: flex;
+            gap: 15px; /* Mais espaçamento entre campos */
+        }
+        .inline-fields input {
+            flex: 1;
+        }
+
+        #fotosPreview, #fotosDocumentoPreview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Espaçamento entre as miniaturas */
+            margin-top: 20px;
+            padding: 5px;
+            border: 1px dashed var(--border-color); /* Borda discreta para a área de preview */
+            border-radius: 8px;
+            min-height: 90px; /* Altura mínima para mostrar a área */
+            justify-content: center; /* Centraliza as miniaturas */
+            align-items: center;
+        }
+
+        .foto-container {
+            position: relative;
+            display: inline-block;
+            border-radius: 8px;
+            overflow: hidden; /* Garante que a imagem respeite o border-radius */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .foto-thumb {
+            width: 90px; /* Um pouco maior */
+            height: 90px; /* Um pouco maior */
+            object-fit: cover;
+            display: block; /* Remove espaço extra abaixo da imagem */
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--red-color);
+            color: var(--text-light);
+            border: none;
+            border-radius: 50%;
+            font-size: 0.8em;
+            width: 24px; /* Maior para melhor toque */
+            height: 24px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1;
+            opacity: 0.9;
+            transition: background 0.2s, opacity 0.2s;
         }
-        #gps { font-size: 14px; color: #555; }
-        #contador { font-size: 12px; text-align: right; color: #555; margin-top: -8px; }
-        #codigoDisplay, #codigoDisplayTecnico { font-size: 14px; font-weight: bold; text-align: center; margin-top: 10px; color: #333; }
+        .remove-btn:hover {
+            background: #c82333;
+            opacity: 1;
+        }
+
+        #gps {
+            font-size: 0.9em;
+            color: var(--secondary-color);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #contador {
+            font-size: 0.85em;
+            text-align: right;
+            color: var(--secondary-color);
+            margin-top: -10px; /* Ajuste para ficar mais próximo da textarea */
+            margin-bottom: 10px;
+        }
+
+        #codigoDisplay, #codigoDisplayTecnico {
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            color: var(--primary-dark);
+            padding: 8px 15px;
+            background: var(--bg-medium);
+            border-radius: 8px;
+            display: inline-block; /* Para centralizar com text-align */
+            width: auto; /* Para não ocupar 100% da largura */
+            max-width: 90%; /* Limitar a largura em telas menores */
+            box-sizing: border-box;
+        }
+
         #mapPreview {
             width: 100%;
-            height: 150px;
-            background-color: #e0e0e0;
-            border: 1px solid #ccc;
-            margin-top: 10px;
-            display: none; /* Hidden by default */
-            object-fit: cover;
+            height: 180px; /* Altura um pouco maior para o mapa */
+            background-color: var(--bg-medium);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            object-fit: cover; /* Garante que a imagem preencha a área */
         }
+
         .camera-controls {
             display: flex;
             gap: 10px;
-            margin-top: 10px;
+            margin-top: 20px;
         }
+
         .camera-controls button {
             flex: 1;
             margin: 0;
-            padding: 10px;
-            width: 100%;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, box-shadow 0.3s;
+            color: var(--text-light);
         }
-        .camera-controls button:hover { background: #0056b3; }
+        .camera-controls button#captureBtn { background: var(--primary-color); }
+        .camera-controls button#captureBtn:hover { background: var(--primary-dark); }
+        .camera-controls button#stopCameraBtn { background: var(--red-color); }
+        .camera-controls button#stopCameraBtn:hover { background: #c82333; }
+
 
         /* Taskbar Styles */
         .taskbar {
@@ -98,88 +225,105 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #333;
+            background-color: var(--text-light); /* Fundo claro para a taskbar */
+            border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding: 10px 0;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-            z-index: 1000; /* Ensure it stays on top */
+            padding: 8px 0; /* Padding ajustado */
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.08); /* Sombra suave para cima */
+            z-index: 1000;
         }
+
         .taskbar button {
             background: none;
             border: none;
-            color: white;
-            font-size: 12px;
+            color: var(--secondary-color); /* Cor dos ícones/texto */
+            font-size: 0.9em;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 5px;
             cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 5px;
-            transition: background 0.2s;
-            flex: 1; /* Distribute space evenly */
-            margin: 0 2px; /* Small margin between buttons */
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background 0.2s, color 0.2s;
+            flex: 1;
+            margin: 0 4px;
         }
-        .taskbar button:not(:disabled):hover { /* Apply hover only when not disabled */
-            background: #555;
+
+        .taskbar button:not(:disabled):hover {
+            background: var(--bg-medium);
+            color: var(--primary-color);
         }
+
         .taskbar button i {
-            font-size: 24px; /* Icon size */
+            font-size: 1.6em; /* Tamanho dos ícones */
+            margin-bottom: 3px;
         }
+
         .taskbar button span {
-            font-size: 10px; /* Label size */
-            white-space: nowrap; /* Keep label on one line */
+            font-size: 0.75em; /* Tamanho do label */
+            white-space: nowrap;
         }
-        
-        /* Specific button colors */
-        #btnColetarGPS { background: #007bff; }
-        #btnColetarGPS:not(:disabled):hover { background: #0056b3; }
-        #btnTirarFoto { background: #28a745; }
-        #btnTirarFoto:not(:disabled):hover { background: #218838; }
-        #btnGerarPDF { background: #ffc107; color: #333; } /* Adjusted color for visibility */
-        #btnGerarPDF:not(:disabled):hover { background: #e0a800; }
-        #btnLimparFormulario { background: #dc3545; }
-        #btnLimparFormulario:not(:disabled):hover { background: #c82333; }
-        #btnEnviarWhatsApp { background: #25d366; } /* WhatsApp green, always visible */
-        #btnEnviarWhatsApp:not(:disabled):hover { background: #1da851; }
+
+        /* Cores específicas dos botões da taskbar */
+        .taskbar button#btnColetarGPS { color: var(--primary-color); }
+        .taskbar button#btnTirarFoto { color: var(--green-color); }
+        .taskbar button#btnGerarPDF { color: var(--yellow-dark); } /* Amarelo mais escuro para melhor contraste */
+        .taskbar button#btnLimparFormulario { color: var(--red-color); }
+        .taskbar button#btnEnviarWhatsApp { color: var(--whatsapp-green); }
+
+        /* Estado desabilitado para botões da taskbar */
+        .taskbar button:disabled {
+            color: var(--border-color); /* Cor mais clara para desabilitado */
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
 
 
-        @media (max-width: 600px) {
-            .inline-fields { flex-direction: column; }
-            .camera-controls { flex-direction: column; }
+        @media (max-width: 768px) {
+            .container {
+                margin: 15px auto;
+                padding: 20px;
+                border-radius: 0; /* Remover borda em telas pequenas para parecer mais integrado */
+                box-shadow: none;
+            }
+            .inline-fields { flex-direction: column; gap: 0; }
+            .inline-fields input { margin-bottom: 10px; }
+            
+            .camera-controls { flex-direction: column; gap: 8px; }
+
+            .taskbar {
+                padding: 5px 0;
+            }
             .taskbar button {
-                padding: 5px 5px; /* Adjust padding for smaller screens */
+                padding: 5px 5px;
+                gap: 2px;
             }
             .taskbar button i {
-                font-size: 20px; /* Smaller icons on small screens */
+                font-size: 1.4em;
             }
             .taskbar button span {
-                font-size: 9px; /* Smaller labels on small screens */
+                font-size: 0.7em;
             }
         }
 
         /* Checkbox demands styling */
         .demand-group {
-            margin-top: 15px;
-            margin-bottom: 10px;
-            border: 1px solid #eee;
-            padding: 10px;
-            border-radius: 5px;
-            background: #f9f9f9;
+            margin-top: 25px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 10px;
+            background: var(--bg-light);
         }
-        .demand-group h3 {
-            margin-top: 0;
-            text-align: left;
-            margin-bottom: 10px;
-        }
-        /* Flexbox for side-by-side checkboxes */
+
         .demand-items-container {
             display: flex;
-            flex-wrap: wrap; /* Allow items to wrap to the next line */
-            gap: 15px; /* Space between items */
-            justify-content: flex-start; /* Align items to the start */
+            flex-wrap: wrap;
+            gap: 15px 25px; /* Espaçamento horizontal e vertical */
+            justify-content: flex-start;
         }
         .demand-item {
             display: flex;
@@ -187,59 +331,66 @@
         }
         .demand-item input[type="checkbox"] {
             width: auto;
-            margin-right: 8px; /* Slightly less margin for tighter fit */
-            transform: scale(1.2); /* Make checkboxes slightly larger */
+            margin: 0; /* Remove margem padrão */
+            margin-right: 10px; /* Espaçamento entre checkbox e label */
+            transform: scale(1.1); /* Um pouco maior */
+            accent-color: var(--primary-color); /* Cor do checkbox quando marcado */
         }
         .demand-item label {
-            font-size: 16px;
+            font-size: 0.95em;
             cursor: pointer;
-            white-space: nowrap; /* Keep label on one line */
+            color: var(--text-dark);
         }
         #outrosDemandaContainer, #outrosDemandaContainerTecnico {
-            margin-top: 10px;
-            width: 100%; /* Take full width below other checkboxes */
+            margin-top: 20px;
+            width: 100%;
         }
         #outrosDemandaInput, #outrosDemandaInputTecnico {
             margin-top: 5px;
-            width: calc(100% - 20px); /* Adjust for padding */
-            display: block;
+            width: calc(100% - 30px); /* Ajusta para padding do input */
         }
 
         /* Tab Styles */
         .tabs {
             display: flex;
             justify-content: center;
-            background: #eee;
+            background: var(--bg-medium);
             padding: 0;
-            margin-top: 0; /* Align with top of body */
-            border-bottom: 1px solid #ccc;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky; /* Fixa as abas no topo */
+            top: 0;
+            z-index: 100; /* Garante que fique acima de outros elementos */
         }
         .tab-button {
-            flex: 1; /* Distribute space evenly */
-            padding: 15px 20px;
+            flex: 1;
+            padding: 18px 25px; /* Mais padding para maior área de clique */
             cursor: pointer;
             border: none;
-            background: #f0f0f0;
-            font-size: 18px;
-            color: #555;
-            transition: background 0.3s, color 0.3s;
-            border-bottom: 3px solid transparent; /* For active indicator */
+            background: var(--bg-medium);
+            font-size: 1.1em;
+            color: var(--secondary-color);
+            transition: background 0.3s, color 0.3s, border-bottom 0.3s;
+            border-bottom: 3px solid transparent;
             text-align: center;
+            font-weight: 600;
         }
         .tab-button:hover {
-            background: #e0e0e0;
+            background: var(--bg-light);
+            color: var(--text-dark);
         }
         .tab-button.active {
-            background: #fff;
-            color: #007bff;
-            border-bottom: 3px solid #007bff;
+            background: var(--text-light);
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.05); /* Sombra suave para a aba ativa */
         }
         .tab-content {
-            display: none; /* Hidden by default */
-            /* Add some padding if needed, but container already has it */
+            display: none;
+            padding-top: 15px; /* Espaçamento entre a aba e o conteúdo */
         }
         .tab-content.active {
-            display: block; /* Show active tab content */
+            display: block;
         }
     </style>
 </head>
@@ -322,7 +473,7 @@
             <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
             <div class="camera-controls">
                 <button id="captureBtn" style="display:none;" onclick="capturarImagem('agente')">Capturar Imagem</button>
-                <button id="stopCameraBtn" style="display:none; background: #dc3545;" onclick="pararCamera('agente')">Fechar Câmera</button>
+                <button id="stopCameraBtn" style="display:none;" onclick="pararCamera('agente')">Fechar Câmera</button>
             </div>
             <div id="fotosPreview"></div>
 
@@ -1218,7 +1369,7 @@
             const mensagemCompletaParaExibir = 
                 `Relatório ${activeData.pdfFileName}, enviado automaticamente via sistema.\n\n` + 
                 `Este relatório não poderá ser modificado e ficará a cargo do assistente social, para a sua revisão.\n\n` + 
-                `Qualquer dúvida, entrar em contato com o agente relacionado.\n\n` +
+                `Qualquer dúvida, entrar em contato com o agente relacionado.\n\n` + 
                 `*Por favor, copie esta mensagem e anexe o PDF '${activeData.pdfFileName}' para enviar via WhatsApp.*`;
             
             alert(mensagemCompletaParaExibir); // Exibe o alerta com a mensagem completa
@@ -1285,7 +1436,7 @@
             const mensagemCompletaParaExibir = 
                 `Relatório ${activeData.pdfFileName}, enviado automaticamente via sistema.\n\n` + 
                 `Este relatório não poderá ser modificado e ficará a cargo do assistente social, para a sua revisão.\n\n` + 
-                `Qualquer dúvida, entrar em contato com o agente relacionado.\n\n` +
+                `Qualquer dúvida, entrar em contato com o agente relacionado.\n\n` + 
                 `*Por favor, copie esta mensagem e anexe o PDF '${activeData.pdfFileName}' para enviar via WhatsApp.*`;
             
             alert(mensagemCompletaParaExibir); // Exibe o alerta com a mensagem completa
