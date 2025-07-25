@@ -31,9 +31,20 @@
             display: none; /* Hidden by default */
             object-fit: cover;
         }
+        /* Flexbox for camera buttons to ensure they display side-by-side or stacked */
+        .camera-controls {
+            display: flex;
+            gap: 10px; /* Space between buttons */
+            margin-top: 10px;
+        }
+        .camera-controls button {
+            flex: 1; /* Make buttons take equal width */
+            margin: 0; /* Remove default button margin */
+        }
         /* Responsive adjustments */
         @media (max-width: 600px) {
             .inline-fields { flex-direction: column; }
+            .camera-controls { flex-direction: column; } /* Stack buttons on small screens */
         }
     </style>
 </head>
@@ -59,8 +70,10 @@
         <h3>Fotos</h3>
         <button onclick="tirarFoto()">Adicionar Foto</button>
         <video id="video" width="100%" autoplay style="display:none;"></video>
-        <button id="captureBtn" style="display:none;" onclick="capturarImagem()">Capturar</button>
-        <button id="stopCameraBtn" style="display:none; background: #dc3545;" onclick="pararCamera()">Parar Câmera</button>
+        <div class="camera-controls">
+            <button id="captureBtn" style="display:none;" onclick="capturarImagem()">Capturar Imagem</button>
+            <button id="stopCameraBtn" style="display:none; background: #dc3545;" onclick="pararCamera()">Fechar Câmera</button>
+        </div>
         <div id="fotosPreview"></div>
 
         <p id="gps"></p>
@@ -73,10 +86,10 @@
     <script>
         let fotos = [];
         let coordenadas = "";
-        let enderecoBaseDetalhes = {}; // Armazena os detalhes do endereço da API (road, city, state, etc.)
+        let enderecoBaseDetalhes = {};
         let codigoAtual = "";
         let cameraStream = null;
-        let mapBase64Image = ""; // To store the base64 map image
+        let mapImageUrl = ""; // Store the direct URL for the map image
 
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
@@ -97,7 +110,6 @@
 
         gerarCodigoAtendimento();
 
-        // Updated calculateAge to include months and days
         function calcularIdade() {
             const nascimentoStr = document.getElementById('dataNascimento').value;
             const idadeInput = document.getElementById('idade');
@@ -115,7 +127,7 @@
 
             if (dias < 0) {
                 meses--;
-                dias += new Date(hoje.getFullYear(), hoje.getMonth(), 0).getDate(); // Days in previous month
+                dias += new Date(hoje.getFullYear(), hoje.getMonth(), 0).getDate();
             }
             if (meses < 0) {
                 anos--;
@@ -139,10 +151,11 @@
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
             try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); // Prefer rear camera
+                // Request 'environment' (rear) camera, if available
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 video.srcObject = cameraStream;
                 video.style.display = "block";
-                captureBtn.style.display = "block";
+                captureBtn.style.display = "block"; // Ensure capture button is visible
                 stopCameraBtn.style.display = "block";
             } catch (err) {
                 console.error("Erro ao acessar a câmera:", err);
@@ -194,10 +207,9 @@
             container.appendChild(removeBtn);
             previewDiv.appendChild(container);
 
-            pararCamera();
+            pararCamera(); // Stop camera after capturing
         }
 
-        // Updated function to format address based on new logic
         function atualizarEnderecoCompleto() {
             const numero = document.getElementById('numero').value.trim();
             const complemento = document.getElementById('complemento').value.trim();
@@ -225,13 +237,16 @@
                 enderecoBaseDetalhes.suburb || enderecoBaseDetalhes.neighbourhood,
                 enderecoBaseDetalhes.city || enderecoBaseDetalhes.town || enderecoBaseDetalhes.village,
                 enderecoBaseDetalhes.state
-            ].filter(Boolean); // Filter out empty strings/undefined
+            ].filter(Boolean);
 
             partes = partes.concat(partesEndBase);
 
-            enderecoInput.value = partes.filter(Boolean).join(', '); // Join only existing parts
-            if (!enderecoInput.value && (numero || complemento)) { // If only number/complement, ensure it's displayed
-                 enderecoInput.value = [numero, complemento].filter(Boolean).join(', ');
+            // Filtra e junta as partes, garantindo que não haja vírgulas extras para campos vazios
+            enderecoInput.value = partes.filter(Boolean).join(', ').replace(/, ,/g, ',').replace(/,$/, '').trim();
+            
+            // Caso nenhum dos 3 esteja preenchido e não tenha endereço base, o campo fica vazio
+            if (!enderecoBaseDetalhes.road && !numero && !complemento && partes.filter(Boolean).length === 0) {
+                 enderecoInput.value = '';
             }
         }
 
@@ -239,6 +254,7 @@
             document.getElementById('gps').innerText = "Coletando localização...";
             const mapPreview = document.getElementById('mapPreview');
             mapPreview.style.display = 'none'; // Hide map while loading
+            mapImageUrl = ""; // Clear previous map URL
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -251,19 +267,23 @@
                         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
                         const response = await fetch(url);
                         const data = await response.json();
-                        enderecoBaseDetalhes = data.address || {}; // Store full address details
+                        enderecoBaseDetalhes = data.address || {};
 
-                        // Trigger address field update
                         atualizarEnderecoCompleto();
 
-                        // Get static map image
-                        await getStaticMap(lat, lon);
+                        // Directly set the src for the map image
+                        const zoom = 15;
+                        const size = "400x200";
+                        mapImageUrl = `https://static.openstreetmap.org/staticmap/osm_basic_osm_contributed.png?mlat=${lat}&mlon=${lon}&zoom=${zoom}&size=${size}&marker=dot-red`;
+                        mapPreview.src = mapImageUrl;
+                        mapPreview.style.display = 'block';
 
                     } catch (fetchError) {
                         console.error("Erro ao obter endereço do Nominatim:", fetchError);
                         document.getElementById('endereco').value = "Não foi possível obter o endereço detalhado.";
                         enderecoBaseDetalhes = {};
                         mapPreview.style.display = 'none';
+                        mapImageUrl = "";
                     }
                 }, (geoError) => {
                     console.error("Erro de geolocalização:", geoError);
@@ -279,38 +299,14 @@
                     document.getElementById('gps').innerText = errorMessage;
                     enderecoBaseDetalhes = {};
                     mapPreview.style.display = 'none';
+                    mapImageUrl = "";
                 });
             } else {
                 alert("Geolocalização não suportada neste navegador.");
                 document.getElementById('gps').innerText = "Geolocalização não suportada.";
                 enderecoBaseDetalhes = {};
                 mapPreview.style.display = 'none';
-            }
-        }
-
-        // Function to get static map image from OpenStreetMap
-        async function getStaticMap(lat, lon) {
-            const mapPreview = document.getElementById('mapPreview');
-            const zoom = 15; // You can adjust the zoom level
-            const size = "400x200"; // Image size for the map
-            // Using OpenStreetMap static map service (requires attribution if used in production widely)
-            const mapUrl = `https://static.openstreetmap.org/staticmap/osm_basic_osm_contributed.png?mlat=${lat}&mlon=${lon}&zoom=${zoom}&size=${size}&marker=dot-red`;
-            
-            try {
-                const response = await fetch(mapUrl);
-                if (!response.ok) throw new Error('Failed to fetch map image');
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = () => {
-                    mapBase64Image = reader.result;
-                    mapPreview.src = mapBase64Image;
-                    mapPreview.style.display = 'block';
-                };
-            } catch (error) {
-                console.error("Erro ao carregar mapa estático:", error);
-                mapPreview.style.display = 'none';
-                alert("Não foi possível carregar o mapa de localização.");
+                mapImageUrl = "";
             }
         }
 
@@ -326,12 +322,14 @@
                     if (width > height) {
                         if (width > maxWidth) {
                             height *= maxWidth / width;
-                            width = maxWidth;
+                            height = parseInt(height); // Ensure integer
+                            width = parseInt(maxWidth); // Ensure integer
                         }
                     } else {
                         if (height > maxHeight) {
                             width *= maxHeight / height;
-                            height = maxHeight;
+                            width = parseInt(width); // Ensure integer
+                            height = parseInt(maxHeight); // Ensure integer
                         }
                     }
                     canvas.width = width;
@@ -340,6 +338,7 @@
                     ctx.drawImage(img, 0, 0, width, height);
                     resolve(canvas.toDataURL('image/jpeg', 0.7));
                 };
+                img.onerror = () => resolve(null); // Resolve with null on error
             });
         }
 
@@ -378,7 +377,7 @@
             doc.setFontSize(12);
             doc.text(`Nome: ${nome}`, 10, yPos);
             yPos += 7;
-            doc.text(`Data de Nascimento: ${nascimento} (Idade: ${idade})`, 10, yPos); // Updated age text
+            doc.text(`Data de Nascimento: ${nascimento} (Idade: ${idade})`, 10, yPos);
             yPos += 7;
             doc.text(`Endereço: ${enderecoFinalParaPDF}`, 10, yPos); 
             yPos += 7;
@@ -386,19 +385,36 @@
             yPos += 15;
 
             // Add Map Image if available
-            if (mapBase64Image) {
-                if (yPos + 80 > doc.internal.pageSize.height - 10) { // Check if new page is needed for map
-                    doc.addPage();
-                    yPos = 20;
-                    addCustomFont(doc);
+            if (mapImageUrl) {
+                 try {
+                    // Fetch the image and convert to base64 for jsPDF
+                    const response = await fetch(mapImageUrl);
+                    const blob = await response.blob();
+                    const mapBase64 = await new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    if (mapBase64) {
+                        if (yPos + 80 > doc.internal.pageSize.height - 10) {
+                            doc.addPage();
+                            yPos = 20;
+                            addCustomFont(doc);
+                        }
+                        doc.setFontSize(14);
+                        doc.text(`Localização no Mapa:`, 10, yPos);
+                        yPos += 8;
+                        doc.addImage(mapBase64, 'PNG', 10, yPos, 100, 50); // Adjust map size in PDF
+                        yPos += 60;
+                    }
+                } catch (mapImgError) {
+                    console.error("Erro ao adicionar imagem do mapa ao PDF:", mapImgError);
+                    doc.text(`(Erro ao carregar mapa)`, 10, yPos);
+                    yPos += 10;
                 }
-                doc.setFontSize(14);
-                doc.text(`Localização no Mapa:`, 10, yPos);
-                yPos += 8;
-                doc.addImage(mapBase64Image, 'PNG', 10, yPos, 100, 50); // Adjust map size in PDF
-                yPos += 60; // Space after map
             }
-            yPos += 5; // Additional space
+            yPos += 5;
 
             doc.setFontSize(14);
             doc.text(`Histórico:`, 10, yPos);
@@ -422,8 +438,13 @@
 
                 try {
                     const resizedFoto = await resizeImage(fotos[i], 200, 200);
-                    doc.addImage(resizedFoto, 'JPEG', 10, yPos, 60, 60);
-                    yPos += 70;
+                    if (resizedFoto) { // Only add if resize was successful
+                        doc.addImage(resizedFoto, 'JPEG', 10, yPos, 60, 60);
+                        yPos += 70;
+                    } else {
+                         doc.text(`(Falha ao processar foto ${i + 1})`, 10, yPos);
+                         yPos += 10;
+                    }
                 } catch (imgError) {
                     console.error("Erro ao adicionar imagem ao PDF:", imgError);
                     doc.text(`(Erro ao carregar foto ${i + 1})`, 10, yPos);
@@ -433,8 +454,6 @@
 
             doc.save(`relatorio-${codigo}.pdf`);
         }
-
-        // Removed enviarWhatsApp function and button
 
         function limparFormulario() {
             document.getElementById('nome').value = '';
@@ -453,9 +472,10 @@
             pararCamera();
 
             coordenadas = "";
-            enderecoBaseDetalhes = {}; // Clear address details
-            mapBase64Image = ""; // Clear map image
-            document.getElementById('mapPreview').style.display = 'none'; // Hide map
+            enderecoBaseDetalhes = {};
+            mapImageUrl = ""; // Clear map URL
+            document.getElementById('mapPreview').src = ""; // Clear map image source
+            document.getElementById('mapPreview').style.display = 'none';
 
             gerarCodigoAtendimento();
             alert("Formulário limpo e novo código de relatório gerado!");
