@@ -1421,7 +1421,7 @@
                 yPos += relatorioQuebrado.length * 7 + 10;
             }
 
-            if (activeData.mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
+            if (activeData.mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E") {
                  try {
                     const response = await fetch(activeData.mapImageUrl);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -1458,7 +1458,7 @@
                     doc.text(`(Erro ao carregar mapa para PDF)`, 10, yPos);
                     yPos += 10;
                 }
-            } else if (activeData.mapImageUrl && (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI")) {
+            } else if (activeData.mapImageUrl && (!Maps_API_KEY || Maps_API_KEY === "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E")) {
                 doc.text(`(Mapa não incluído: Chave de API do Google ausente/inválida)`, 10, yPos);
                 yPos += 10;
             }
