@@ -67,6 +67,7 @@
         input[type="text"],
         input[type="tel"],
         input[type="date"], /* Adicionei para caso mude o input type */
+        select, /* Estilo para select dropdown */
         textarea {
             display: block;
             margin: 15px 0; /* Mais espaçamento vertical */
@@ -81,13 +82,13 @@
             transition: border-color 0.3s, box-shadow 0.3s;
         }
 
-        input:focus, textarea:focus {
+        input:focus, select:focus, textarea:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Sombra no foco */
             outline: none;
         }
 
-        input:disabled, textarea:disabled {
+        input:disabled, select:disabled, textarea:disabled {
             background-color: var(--bg-medium);
             color: var(--secondary-color);
             cursor: not-allowed;
@@ -98,7 +99,7 @@
             display: flex;
             gap: 15px; /* Mais espaçamento entre campos */
         }
-        .inline-fields input {
+        .inline-fields input, .inline-fields select { /* Aplica estilo também para select */
             flex: 1;
         }
 
@@ -153,14 +154,14 @@
             opacity: 1;
         }
 
-        #gps {
+        #gps, #gpsTecnico { /* Aplica estilo ao GPS de ambas as abas */
             font-size: 0.9em;
             color: var(--secondary-color);
             text-align: center;
             margin-top: 10px;
         }
 
-        #contador {
+        #contador, #contadorTecnico, #contadorRelatorioEncaminhamento { /* Aplica estilo aos contadores */
             font-size: 0.85em;
             text-align: right;
             color: var(--secondary-color);
@@ -290,7 +291,7 @@
                 box-shadow: none;
             }
             .inline-fields { flex-direction: column; gap: 0; }
-            .inline-fields input { margin-bottom: 10px; }
+            .inline-fields input, .inline-fields select { margin-bottom: 10px; } /* Ajuste para select */
             
             .camera-controls { flex-direction: column; gap: 8px; }
 
@@ -392,6 +393,20 @@
         .tab-content.active {
             display: block;
         }
+
+        /* Campo de seleção (dropdown) */
+        select {
+            appearance: none; /* Remove estilo padrão do navegador */
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23343a40" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 20px;
+            padding-right: 40px; /* Espaço para o ícone */
+        }
+        select option[value=""] {
+            color: var(--secondary-color); /* Cor para o placeholder */
+        }
+
     </style>
 </head>
 <body>
@@ -501,52 +516,78 @@
             <div id="mapPreviewTecnico" style="display:none;"></div> <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'tecnico')" onchange="calcularIdade('tecnico')">
             <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
 
+            <select id="cadUnico_tecnico" required>
+                <option value="">Possui CAD Único?</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+
+            <select id="bolsaFamilia_tecnico" required>
+                <option value="">Possui Bolsa-Família?</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+
+            <select id="centroRecuperacao_tecnico" required>
+                <option value="">Já passou por centro de recuperação?</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+
             <textarea id="historico_tecnico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('tecnico')"></textarea>
             <div id="contadorTecnico">0 / 5000</div>
+
+            <textarea id="relatorioEncaminhamento_tecnico" placeholder="Relatório de Encaminhamento (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('relatorioEncaminhamento')"></textarea>
+            <div id="contadorRelatorioEncaminhamento">0 / 5000</div>
 
             <div class="demand-group">
                 <h3>Demandas:</h3>
                 <div class="demand-items-container"> 
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho">
+                        <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho" onchange="checkDemandasTecnico()">
                         <label for="demandaBanho_tecnico">Banho</label>
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social">
+                        <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social" onchange="checkDemandasTecnico()">
                         <label for="demandaAssistenteSocial_tecnico">Assistente Social</label>
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo">
+                        <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo" onchange="checkDemandasTecnico()">
                         <label for="demandaPsicologo_tecnico">Psicólogo</label>
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento">
+                        <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento" onchange="checkDemandasTecnico()">
                         <label for="demandaEncaminhamento_tecnico">Encaminhamento</label>
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento">
+                        <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento" onchange="checkDemandasTecnico()">
                         <label for="demandaAcolhimento_tecnico">Acolhimento</label>
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas">
+                        <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas" onchange="checkDemandasTecnico()">
                         <label for="demandaDuvidas_tecnico">Dúvidas</label> 
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações">
+                        <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações" onchange="checkDemandasTecnico()">
                         <label for="demandaInformacoes_tecnico">Informações</label> 
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo">
+                        <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo" onchange="checkDemandasTecnico()">
                         <label for="demandaCabelo_tecnico">Corte de cabelo</label>
                     </div>
                     <div class="demand-item">
-                        <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros">
+                        <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros" onchange="checkDemandasTecnico()">
                         <label for="demandaOutros_tecnico">Outros</label>
                     </div>
                 </div> 
                 <div id="outrosDemandaContainerTecnico" style="display:none;">
                     <input type="text" id="outrosDemandaInputTecnico" placeholder="Especifique outras demandas">
                 </div>
+            </div>
+
+            <div class="demand-item" style="margin-top: 20px;">
+                <input type="checkbox" id="atendimentoPsicossocial_tecnico" name="atendimentoPsicossocial_tecnico">
+                <label for="atendimentoPsicossocial_tecnico">Atendimento Psicossocial</label>
             </div>
 
             <div id="fotosPreviewTecnico"></div>
@@ -629,8 +670,13 @@
             complemento: "",
             dataNascimento: "",
             idade: "",
+            cadUnico: "",
+            bolsaFamilia: "",
+            centroRecuperacao: "",
             historico: "",
-            demandas: []
+            relatorioEncaminhamento: "", // NOVO CAMPO
+            demandas: [],
+            atendimentoPsicossocial: false // NOVO CAMPO
         };
 
         let activeTab = 'agenteCampo'; // Controla qual aba está ativa
@@ -667,6 +713,15 @@
                 if (idBase === 'outrosDemandaInput') return document.getElementById('outrosDemandaInputTecnico');
                 if (idBase === 'fotosPreview') return document.getElementById('fotosPreviewTecnico');
                 if (idBase === 'gps') return document.getElementById('gpsTecnico');
+
+                // Novos campos da aba técnico
+                if (idBase === 'cadUnico') return document.getElementById('cadUnico_tecnico');
+                if (idBase === 'bolsaFamilia') return document.getElementById('bolsaFamilia_tecnico');
+                if (idBase === 'centroRecuperacao') return document.getElementById('centroRecuperacao_tecnico');
+                if (idBase === 'relatorioEncaminhamento') return document.getElementById('relatorioEncaminhamento_tecnico'); // NOVO
+                if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento'); // NOVO
+                if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico'); // NOVO
+                
                 // Campos de camera e mapPreview são compartilhados no HTML
                 if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn' ||
                     idBase === 'mapPreview') {
@@ -707,6 +762,11 @@
 
             // Para parar a câmera se o usuário mudar de aba com a câmera aberta
             pararCamera('global'); 
+
+            // Atualiza os contadores ao mudar de aba
+            atualizarContador('agente'); // Atualiza contador do histórico do agente
+            atualizarContador('tecnico'); // Atualiza contador do histórico do técnico
+            atualizarContador('relatorioEncaminhamento'); // Atualiza contador do relatório de encaminhamento do técnico
         }
 
         function gerarCodigoAtendimento() {
@@ -728,6 +788,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             gerarCodigoAtendimento();
             
+            // Listeners para a aba Agente de Campo
             getElementByIdForActiveTab('demandaOutros').addEventListener('change', function() {
                 const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer');
                 outrosContainer.style.display = this.checked ? 'block' : 'none';
@@ -735,18 +796,27 @@
                     getElementByIdForActiveTab('outrosDemandaInput').value = ''; 
                 }
             });
-            // Adicionar event listener para a aba Técnico também
+
+            getElementByIdForActiveTab('telefoneAgente').addEventListener('input', function (e) {
+                e.target.value = e.target.value.replace(/\D/g, ''); 
+            });
+
+            // Listeners para a aba Técnico
             getElementByIdForActiveTab('demandaOutros', false).addEventListener('change', function() {
                  const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer', false);
                  outrosContainer.style.display = this.checked ? 'block' : 'none';
                  if (!this.checked) {
                      getElementByIdForActiveTab('outrosDemandaInput', false).value = '';
                  }
+                 checkDemandasTecnico(); // Chama para verificar a necessidade do Relatório de Encaminhamento
             });
 
-            getElementByIdForActiveTab('telefoneAgente').addEventListener('input', function (e) {
-                e.target.value = e.target.value.replace(/\D/g, ''); 
+            // Adiciona um listener para todos os checkboxes de demanda do técnico
+            document.querySelectorAll('input[name="demandas_tecnico"]').forEach(checkbox => {
+                checkbox.addEventListener('change', checkDemandasTecnico);
             });
+
+
             getElementByIdForActiveTab('telefoneAgente', false).addEventListener('input', function (e) { // Para aba tecnico
                  e.target.value = e.target.value.replace(/\D/g, '');
             });
@@ -755,7 +825,8 @@
             getElementByIdForActiveTab('nomeAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
             getElementByIdForActiveTab('telefoneAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
             getElementByIdForActiveTab('nomeAgente', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
-            getElementByIdForActiveTab('telefoneAgente', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
+            getElementByIdForActiveTab('telefoneTecnico', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
+
 
             // Inicia o botão do WhatsApp desabilitado
             document.getElementById('btnEnviarWhatsApp').disabled = true;
@@ -824,9 +895,12 @@
 
             // Pula para o próximo campo após preencher 8 dígitos (DD/MM/AAAA)
             if (value.length === 8) {
-                const nextField = tabContext === 'agente' ? 
-                    document.getElementById('historico') : 
-                    document.getElementById('historico_tecnico');
+                let nextField;
+                if (tabContext === 'agente') {
+                    nextField = document.getElementById('historico');
+                } else { // aba tecnico
+                    nextField = document.getElementById('cadUnico_tecnico'); // Novo foco
+                }
                 if (nextField) {
                     nextField.focus();
                 }
@@ -879,12 +953,46 @@
             idadeInput.value = idadeTexto;
         }
 
-        function atualizarContador(tabContext = 'agente') {
-            const historicoInput = tabContext === 'agente' ? getElementByIdForActiveTab('historico') : getElementByIdForActiveTab('historico', false);
-            const contadorDisplay = tabContext === 'agente' ? getElementByIdForActiveTab('contador') : getElementByIdForActiveTab('contador', false);
+        function atualizarContador(fieldContext = 'historico') {
+            let inputElement;
+            let counterElement;
+
+            if (fieldContext === 'agente') {
+                inputElement = getElementByIdForActiveTab('historico');
+                counterElement = getElementByIdForActiveTab('contador');
+            } else if (fieldContext === 'tecnico') {
+                inputElement = getElementByIdForActiveTab('historico', false);
+                counterElement = getElementByIdForActiveTab('contador', false);
+            } else if (fieldContext === 'relatorioEncaminhamento') { // NOVO CONTEXTO
+                inputElement = getElementByIdForActiveTab('relatorioEncaminhamento', false);
+                counterElement = getElementByIdForActiveTab('contadorRelatorioEncaminhamento', false);
+            }
             
-            const historico = historicoInput.value.length;
-            contadorDisplay.innerText = `${historico} / 5000`;
+            if (inputElement && counterElement) {
+                const currentLength = inputElement.value.length;
+                const maxLength = inputElement.maxLength;
+                counterElement.innerText = `${currentLength} / ${maxLength}`;
+            }
+        }
+
+        // NOVO: Função para verificar se o Relatório de Encaminhamento deve ser preenchido
+        function checkDemandasTecnico() {
+            const checkboxes = document.querySelectorAll('input[name="demandas_tecnico"]');
+            const relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false);
+            let anyChecked = false;
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    anyChecked = true;
+                }
+            });
+            // O campo não fica disabled, mas a validação ocorrerá ao gerar o PDF
+            // relatorioEncaminhamento.required = anyChecked; // Descomente se quiser usar o 'required' do HTML
+            // Opcionalmente, pode-se adicionar uma classe para estilizar o campo como obrigatório visualmente
+            if (anyChecked) {
+                relatorioEncaminhamento.classList.add('required-field-visual');
+            } else {
+                relatorioEncaminhamento.classList.remove('required-field-visual');
+            }
         }
 
 
@@ -1038,7 +1146,7 @@
             mapPreview.style.display = 'none';
             activeData.mapImageUrl = ""; 
 
-            if (!Maps_API_KEY || Maps_API_KEY === "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
+            if (!Maps_API_KEY || Maps_API_KEY === "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E") {
                 alert("Por favor, configure sua CHAVE DE API DO GOOGLE MAPS no código para que o mapa funcione.");
                 gpsDisplay.innerText = "Erro: API Key do Google não configurada.";
                 return;
@@ -1178,6 +1286,51 @@
                 return;
             }
 
+            // Validações específicas para a aba Técnico
+            if (activeTab === 'tecnico') {
+                const cadUnico = getElementByIdForActiveTab('cadUnico', false).value;
+                const bolsaFamilia = getElementByIdForActiveTab('bolsaFamilia', false).value;
+                const centroRecuperacao = getElementByIdForActiveTab('centroRecuperacao', false).value;
+                const atendimentoPsicossocial = getElementByIdForActiveTab('atendimentoPsicossocial', false).checked;
+                const relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false).value.trim();
+
+                if (!cadUnico) {
+                    alert("Por favor, selecione uma opção para 'Possui CAD Único?'.");
+                    return;
+                }
+                if (!bolsaFamilia) {
+                    alert("Por favor, selecione uma opção para 'Possui Bolsa-Família?'.");
+                    return;
+                }
+                if (!centroRecuperacao) {
+                    alert("Por favor, selecione uma opção para 'Já passou por centro de recuperação?'.");
+                    return;
+                }
+                if (!atendimentoPsicossocial) {
+                    alert("Para gerar o relatório, você deve marcar a caixa 'Atendimento Psicossocial'.");
+                    return;
+                }
+
+                // Valida se alguma demanda está marcada para exigir o relatório de encaminhamento
+                const checkboxesTecnico = document.querySelectorAll(`input[name="demandas_tecnico"]:checked`);
+                let anyDemandCheckedTecnico = false;
+                checkboxesTecnico.forEach(checkbox => {
+                    if (checkbox.value === 'Outros') {
+                        const outrosText = getElementByIdForActiveTab('outrosDemandaInput', false).value.trim();
+                        if (outrosText) anyDemandCheckedTecnico = true;
+                    } else {
+                        anyDemandCheckedTecnico = true;
+                    }
+                });
+
+                if (anyDemandCheckedTecnico && !relatorioEncaminhamento) {
+                    alert("Você selecionou demandas. O campo 'Relatório de Encaminhamento' é obrigatório.");
+                    getElementByIdForActiveTab('relatorioEncaminhamento', false).focus();
+                    return;
+                }
+            }
+
+
             const demandasSelecionadas = [];
             const demandaOutrosCheckbox = getElementByIdForActiveTab('demandaOutros');
             const outrosTextInput = getElementByIdForActiveTab('outrosDemandaInput');
@@ -1236,6 +1389,37 @@
             yPos += 7;
             doc.text(`Coordenadas: ${activeData.coordenadas || "Não coletadas"}`, 10, yPos);
             yPos += 15;
+
+            // Dados específicos da aba Técnico no PDF
+            if (activeTab === 'tecnico') {
+                const cadUnico = getElementByIdForActiveTab('cadUnico', false).value;
+                const bolsaFamilia = getElementByIdForActiveTab('bolsaFamilia', false).value;
+                const centroRecuperacao = getElementByIdForActiveTab('centroRecuperacao', false).value;
+                const relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false).value || "Não informado";
+                const atendimentoPsicossocial = getElementByIdForActiveTab('atendimentoPsicossocial', false).checked ? 'Sim' : 'Não';
+
+                doc.setFontSize(14);
+                doc.text(`Informações Adicionais (Técnico):`, 10, yPos);
+                yPos += 8;
+                doc.setFontSize(12);
+                doc.text(`Possui CAD Único?: ${cadUnico}`, 10, yPos);
+                yPos += 7;
+                doc.text(`Possui Bolsa-Família?: ${bolsaFamilia}`, 10, yPos);
+                yPos += 7;
+                doc.text(`Já passou por centro de recuperação?: ${centroRecuperacao}`, 10, yPos);
+                yPos += 7;
+                doc.text(`Atendimento Psicossocial: ${atendimentoPsicossocial}`, 10, yPos);
+                yPos += 15;
+
+                // Relatório de Encaminhamento
+                doc.setFontSize(14);
+                doc.text(`Relatório de Encaminhamento:`, 10, yPos);
+                yPos += 8;
+                doc.setFontSize(12);
+                let relatorioQuebrado = doc.splitTextToSize(relatorioEncaminhamento, 180);
+                doc.text(relatorioQuebrado, 10, yPos);
+                yPos += relatorioQuebrado.length * 7 + 10;
+            }
 
             if (activeData.mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
                  try {
@@ -1383,6 +1567,7 @@
             const activeData = getActiveData();
             const currentTabSuffix = activeTab === 'agenteCampo' ? '' : '_tecnico';
 
+            // Campos gerais do usuário
             getElementByIdForActiveTab('nome').value = '';
             getElementByIdForActiveTab('identidade').value = ''; 
             getElementByIdForActiveTab('cpf').value = ''; 
@@ -1412,6 +1597,21 @@
             });
             getElementByIdForActiveTab('outrosDemandaInput').value = '';
             getElementByIdForActiveTab('outrosDemandaContainer').style.display = 'none';
+
+            // Limpeza de campos específicos da aba Técnico
+            if (activeTab === 'tecnico') {
+                getElementByIdForActiveTab('cadUnico', false).value = '';
+                getElementByIdForActiveTab('bolsaFamilia', false).value = '';
+                getElementByIdForActiveTab('centroRecuperacao', false).value = '';
+                getElementByIdForActiveTab('relatorioEncaminhamento', false).value = ''; // NOVO
+                getElementByIdForActiveTab('contadorRelatorioEncaminhamento', false).innerText = '0 / 5000'; // NOVO
+                getElementByIdForActiveTab('atendimentoPsicossocial', false).checked = false; // NOVO
+
+                // Remove a classe de aviso de campo obrigatório visualmente
+                getElementByIdForActiveTab('relatorioEncaminhamento', false).classList.remove('required-field-visual');
+                
+            }
+
 
             document.getElementById('btnEnviarWhatsApp').disabled = true;
             activeData.pdfDataUri = null; 
