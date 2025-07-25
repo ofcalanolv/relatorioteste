@@ -150,10 +150,85 @@
                 font-size: 9px; /* Smaller labels on small screens */
             }
         }
+
+        /* --- Login Page Styles --- */
+        #loginContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000; /* Above all else */
+        }
+        #loginBox {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+        }
+        #loginBox h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        #loginBox input {
+            margin-bottom: 15px;
+        }
+        #loginBox button {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        #loginBox button:hover {
+            background: #0056b3;
+        }
+        #loginBox p {
+            margin-top: 15px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        #loginBox p:hover {
+            text-decoration: underline;
+        }
+        #loginStatus {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1001;
+            display: none; /* Hidden by default */
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="loginContainer">
+        <div id="loginBox">
+            <h2 id="loginTitle">Entrar</h2>
+            <input type="text" id="loginUsername" placeholder="Nome de Usuário">
+            <input type="password" id="loginPassword" placeholder="Senha">
+            <input type="text" id="loginPhone" placeholder="Telefone (Cadastro)" style="display:none;">
+            <button id="loginButton" onclick="handleLoginRegister()">Entrar</button>
+            <p id="toggleLoginRegister" onclick="toggleLoginRegister()">Não tem conta? Cadastre-se</p>
+        </div>
+    </div>
+
+    <div class="container" id="appContainer" style="display:none;">
         <h2>Coleta de Dados</h2>
         <div id="codigoDisplay"></div>
         <input type="text" id="nome" placeholder="Nome">
@@ -179,10 +254,9 @@
         <div id="fotosPreview"></div>
 
         <p id="gps"></p>
+    </div>
 
-        </div>
-
-    <div class="taskbar">
+    <div class="taskbar" id="mainTaskbar" style="display:none;">
         <button id="btnColetarGPS" onclick="coletarGPS()">
             <i class="fas fa-map-marker-alt"></i>
             <span>Endereço</span>
@@ -201,21 +275,28 @@
         </button>
     </div>
 
+    <div id="loginStatus"></div>
+
     <script>
-        // *** SUA CHAVE DE API DO GOOGLE FOI INSERIDA AQUI ***
         const Maps_API_KEY = "AIzaSyATdDuH-ptUpN_UsZpotGX4Xe83AvUVF-E"; 
-        // Lembre-se de restringir essa chave no Google Cloud Console!
 
         let fotos = [];
         let coordenadas = "";
         let enderecoBaseDetalhes = {};
         let codigoAtual = "";
         let cameraStream = null;
-        let mapImageUrl = ""; // To store the Google Static Maps URL
+        let mapImageUrl = ""; 
+        
+        let loggedInUser = null; // Store current logged in user's data
 
-        const addCustomFont = (doc) => {
+        // --- User Authentication Variables ---
+        // For a real application, you'd use a backend server and database.
+        // For this local HTML, we'll use localStorage to simulate.
+        const USERS_STORAGE_KEY = 'registeredUsers';
+
+        function addCustomFont(doc) {
             doc.addFont('helvetica', 'normal', 'normal');
-        };
+        }
 
         function gerarCodigoAtendimento() {
             const agora = new Date();
@@ -230,11 +311,9 @@
             return codigoAtual;
         }
 
-        gerarCodigoAtendimento();
-
-        // New function to format date input
+        // --- Date Formatting and Age Calculation ---
         function formatarDataNascimento(input) {
-            let value = input.value.replace(/\D/g, ''); // Remove non-digits
+            let value = input.value.replace(/\D/g, ''); 
             let formattedValue = '';
 
             if (value.length > 0) {
@@ -257,7 +336,6 @@
                 return;
             }
 
-            // Parse DD/MM/AAAA to YYYY-MM-DD for Date object
             const partes = nascimentoStr.split('/');
             if (partes.length !== 3) {
                 idadeInput.value = '';
@@ -266,7 +344,7 @@
             const nascFormatado = `${partes[2]}-${partes[1]}-${partes[0]}`;
             const nasc = new Date(nascFormatado);
 
-            if (isNaN(nasc.getTime())) { // Check for invalid date
+            if (isNaN(nasc.getTime())) {
                 idadeInput.value = '';
                 return;
             }
@@ -298,12 +376,12 @@
             document.getElementById('contador').innerText = `${historico} / 5000`;
         }
 
+        // --- Camera Functions ---
         async function tirarFoto() {
             const video = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
 
-            // If camera is already open, do nothing or just focus UI
             if (cameraStream && cameraStream.active) {
                 video.style.display = "block";
                 captureBtn.style.display = "block";
@@ -374,10 +452,9 @@
             container.appendChild(img);
             container.appendChild(removeBtn);
             previewDiv.appendChild(container);
-
-            // Do NOT call pararCamera() here to allow multiple captures
         }
 
+        // --- GPS and Map Functions ---
         function atualizarEnderecoCompleto() {
             const numero = document.getElementById('numero').value.trim();
             const complemento = document.getElementById('complemento').value.trim();
@@ -432,7 +509,6 @@
                     document.getElementById('gps').innerText = coordenadas;
 
                     try {
-                        // Using Nominatim for address details
                         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
                         const nominatimResponse = await fetch(nominatimUrl);
                         const nominatimData = await nominatimResponse.json();
@@ -440,10 +516,9 @@
 
                         atualizarEnderecoCompleto();
 
-                        // Using Google Static Maps API for the map image
                         const zoom = 15;
-                        const size = "400x200"; // Max size for free tier is 640x640, or 1280x1280 with scale=2
-                        const marker = `markers=color:red%7Clabel:P%7C${lat},${lon}`; // Red marker labeled P
+                        const size = "400x200"; 
+                        const marker = `markers=color:red%7Clabel:P%7C${lat},${lon}`;
                         
                         mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=${zoom}&size=${size}&${marker}&key=${Maps_API_KEY}`;
                         
@@ -483,31 +558,60 @@
             }
         }
 
-        function resizeImage(base64Str, maxWidth = 800, maxHeight = 800) {
+        // --- Image Resizing (Adjusted for 4:3 Aspect Ratio) ---
+        function resizeImage(base64Str, targetWidth = 600) { // Target width for the resized image for PDF
             return new Promise((resolve) => {
                 let img = new Image();
                 img.src = base64Str;
                 img.onload = () => {
                     let canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
+                    let originalWidth = img.width;
+                    let originalHeight = img.height;
 
-                    if (width > height) {
-                        if (width > maxWidth) {
-                            height = parseInt(height * maxWidth / width);
-                            width = parseInt(maxWidth);
-                        }
-                    } else {
-                        if (height > maxHeight) {
-                            width = parseInt(width * maxHeight / height);
-                            height = parseInt(maxHeight);
+                    // Calculate target height to maintain 4:3 aspect ratio (width/height = 4/3)
+                    // If original is vertical, rotate it conceptually before resizing to 4:3 landscape
+                    let isLandscape = originalWidth >= originalHeight;
+                    let width, height;
+
+                    if (isLandscape) {
+                        width = targetWidth;
+                        height = (targetWidth / 4) * 3; // Maintain 4:3 aspect ratio
+                    } else { // Original is portrait
+                        // Rotate it conceptually to landscape (height becomes width, width becomes height for calculation)
+                        width = targetWidth;
+                        height = (targetWidth / 4) * 3;
+                        // To achieve 4:3 landscape from portrait, we might crop or letterbox.
+                        // For simplicity, we just resize to fit the 4:3 target while maintaining aspect.
+                        // This might result in letterboxing or stretching if original is not 4:3
+                        // A more advanced solution would involve cropping the center
+                        // For now, let's fit the longest side to our target width, and adjust height
+                        // and then crop if necessary for strict 4:3 or pad
+                        
+                        // Let's force it to 4:3 landscape directly for simplicity
+                        // The drawn image will be scaled to fit this canvas
+                        if (originalWidth / originalHeight > 4 / 3) { // Original is wider than 4:3
+                            height = (originalHeight / originalWidth) * targetWidth;
+                            width = targetWidth;
+                        } else { // Original is taller than 4:3 or 4:3
+                            width = (originalWidth / originalHeight) * ((targetWidth / 4) * 3);
+                            height = (targetWidth / 4) * 3;
                         }
                     }
-                    canvas.width = width;
-                    canvas.height = height;
+
+                    canvas.width = targetWidth;
+                    canvas.height = (targetWidth / 4) * 3; // Ensure canvas is 4:3
+
                     let ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    ctx.fillStyle = "#FFFFFF"; // Fill background with white
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Calculate scaling factor to fit the image inside the 4:3 canvas
+                    let scale = Math.min(canvas.width / originalWidth, canvas.height / originalHeight);
+                    let imgX = (canvas.width / 2) - (originalWidth / 2) * scale;
+                    let imgY = (canvas.height / 2) - (originalHeight / 2) * scale;
+
+                    ctx.drawImage(img, imgX, imgY, originalWidth * scale, originalHeight * scale);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); // Use 0.8 quality for better balance
                 };
                 img.onerror = () => {
                     console.warn("Falha ao carregar ou redimensionar imagem (Base64 inválido ou erro de rede).");
@@ -543,7 +647,14 @@
             doc.text(`Relatório nº: ${codigo}`, 10, yPos);
             yPos += 10;
             doc.text(`Data e Hora: ${new Date().toLocaleString('pt-BR')}`, 10, yPos);
-            yPos += 15;
+            yPos += 5;
+            if (loggedInUser) {
+                doc.text(`Usuário Responsável: ${loggedInUser.username} (Tel: ${loggedInUser.phone})`, 10, yPos);
+            } else {
+                doc.text(`Usuário Responsável: Não logado`, 10, yPos);
+            }
+            yPos += 10;
+
 
             doc.setFontSize(14);
             doc.text(`Dados Pessoais:`, 10, yPos);
@@ -558,7 +669,6 @@
             doc.text(`Coordenadas: ${coordenadas || "Não coletadas"}`, 10, yPos);
             yPos += 15;
 
-            // Add Map Image if available (from Google Static Maps)
             if (mapImageUrl && Maps_API_KEY && Maps_API_KEY !== "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI") {
                  try {
                     const response = await fetch(mapImageUrl);
@@ -583,8 +693,11 @@
                         doc.setFontSize(14);
                         doc.text(`Localização no Mapa:`, 10, yPos);
                         yPos += 8;
-                        doc.addImage(mapBase64, 'PNG', 10, yPos, 100, 50); // Adjust map size in PDF
-                        yPos += 60;
+                        // Map size for PDF
+                        const mapWidth = 100;
+                        const mapHeight = (mapWidth / 4) * 3; // Maintain 4:3 aspect ratio
+                        doc.addImage(mapBase64, 'PNG', 10, yPos, mapWidth, mapHeight); 
+                        yPos += mapHeight + 10;
                     } else {
                          doc.text(`(Falha ao processar mapa para PDF - Base64 vazio)`, 10, yPos);
                          yPos += 10;
@@ -613,26 +726,49 @@
             yPos += 8;
             doc.setFontSize(12);
 
+            // PDF image layout variables
+            const imgWidth = 60; // Desired width for each image in PDF (mm)
+            const imgHeight = (imgWidth / 4) * 3; // Calculated height for 4:3 aspect ratio (mm)
+            const imgMargin = 5; // Margin between images (mm)
+            const startX = 10; // Starting X position for images
+            let currentX = startX;
+            let imagesInRow = 0;
+
             for (let i = 0; i < fotos.length; i++) {
-                if (yPos + 70 > doc.internal.pageSize.height - 10) {
+                // Check if current row has space for new image, or if it's a new page
+                if (imagesInRow === 3 || (yPos + imgHeight + 10 > doc.internal.pageSize.height - 10 && imagesInRow > 0)) {
                     doc.addPage();
-                    yPos = 20;
-                    addCustomFont(doc);
+                    yPos = 20; // Reset yPos for new page
+                    currentX = startX; // Reset X position
+                    imagesInRow = 0; // Reset image counter for new row/page
+                    addCustomFont(doc); // Re-add font for new page
+                } else if (yPos + imgHeight + 10 > doc.internal.pageSize.height - 10 && imagesInRow === 0) {
+                     // If it's the first image of a new row and no space, just add page
+                     doc.addPage();
+                     yPos = 20;
+                     currentX = startX;
+                     imagesInRow = 0;
+                     addCustomFont(doc);
                 }
 
+
                 try {
-                    const resizedFoto = await resizeImage(fotos[i], 200, 200);
+                    const resizedFoto = await resizeImage(fotos[i], 600); // Pass a target width (e.g., 600px for good quality)
                     if (resizedFoto) {
-                        doc.addImage(resizedFoto, 'JPEG', 10, yPos, 60, 60);
-                        yPos += 70;
+                        doc.addImage(resizedFoto, 'JPEG', currentX, yPos, imgWidth, imgHeight);
+                        currentX += imgWidth + imgMargin; // Move X for next image
+                        imagesInRow++;
+
+                        if (imagesInRow === 3) { // If 3 images in row, reset for next row
+                            yPos += imgHeight + imgMargin;
+                            currentX = startX;
+                            imagesInRow = 0;
+                        }
                     } else {
-                         doc.text(`(Falha ao processar foto ${i + 1})`, 10, yPos);
-                         yPos += 10;
+                         console.warn(`Could not process photo ${i + 1} for PDF.`);
                     }
                 } catch (imgError) {
                     console.error("Erro ao adicionar imagem ao PDF:", imgError);
-                    doc.text(`(Erro ao carregar foto ${i + 1})`, 10, yPos);
-                    yPos += 10;
                 }
             }
 
@@ -653,7 +789,7 @@
             fotos = [];
             document.getElementById('fotosPreview').innerHTML = '';
 
-            pararCamera(); // Ensure camera is stopped when clearing form
+            pararCamera();
 
             coordenadas = "";
             enderecoBaseDetalhes = {};
@@ -664,6 +800,99 @@
             gerarCodigoAtendimento();
             alert("Formulário limpo e novo código de relatório gerado!");
         }
+
+        // --- User Authentication Functions ---
+        let isRegistering = false; // To toggle between login and register
+
+        function loadUsers() {
+            const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
+            return usersJson ? JSON.parse(usersJson) : [];
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        }
+
+        function toggleLoginRegister() {
+            isRegistering = !isRegistering;
+            const loginTitle = document.getElementById('loginTitle');
+            const loginPhone = document.getElementById('loginPhone');
+            const loginButton = document.getElementById('loginButton');
+            const toggleButton = document.getElementById('toggleLoginRegister');
+
+            if (isRegistering) {
+                loginTitle.innerText = "Cadastre-se";
+                loginPhone.style.display = "block";
+                loginButton.innerText = "Cadastrar";
+                toggleButton.innerText = "Já tem conta? Entrar";
+            } else {
+                loginTitle.innerText = "Entrar";
+                loginPhone.style.display = "none";
+                loginButton.innerText = "Entrar";
+                toggleButton.innerText = "Não tem conta? Cadastre-se";
+            }
+        }
+
+        function handleLoginRegister() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const phone = document.getElementById('loginPhone').value.trim();
+            let users = loadUsers();
+
+            if (isRegistering) {
+                // Register
+                if (!username || !password || !phone) {
+                    alert("Por favor, preencha todos os campos para se cadastrar.");
+                    return;
+                }
+                if (users.some(u => u.username === username)) {
+                    alert("Nome de usuário já existe. Escolha outro.");
+                    return;
+                }
+                users.push({ username, password, phone });
+                saveUsers(users);
+                alert("Usuário cadastrado com sucesso! Agora você pode fazer login.");
+                isRegistering = false; // Switch back to login view
+                toggleLoginRegister(); // Update UI
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPhone').value = '';
+            } else {
+                // Login
+                if (!username || !password) {
+                    alert("Por favor, preencha nome de usuário e senha.");
+                    return;
+                }
+                const user = users.find(u => u.username === username && u.password === password);
+                if (user) {
+                    loggedInUser = user;
+                    document.getElementById('loginContainer').style.display = 'none'; // Hide login
+                    document.getElementById('appContainer').style.display = 'block'; // Show app
+                    document.getElementById('mainTaskbar').style.display = 'flex'; // Show taskbar
+                    document.getElementById('loginStatus').innerText = `Logado como: ${loggedInUser.username}`;
+                    document.getElementById('loginStatus').style.display = 'block';
+                    gerarCodigoAtendimento(); // Generate initial report code
+                    alert(`Bem-vindo, ${loggedInUser.username}!`);
+                } else {
+                    alert("Nome de usuário ou senha incorretos.");
+                }
+            }
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if there are any registered users. If not, force registration view.
+            const users = loadUsers();
+            if (users.length === 0) {
+                isRegistering = true;
+                toggleLoginRegister();
+                alert("Nenhum usuário cadastrado. Por favor, cadastre um novo usuário.");
+            } else {
+                // Keep the default login view
+                toggleLoginRegister(); // Call once to ensure initial state is login
+                isRegistering = false;
+            }
+        });
     </script>
 </body>
 </html>
