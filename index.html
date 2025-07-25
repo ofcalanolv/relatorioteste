@@ -67,7 +67,7 @@
 
         <h3>Fotos</h3>
         <button onclick="tirarFoto()">Adicionar Foto</button>
-        <video id="video" width="100%" autoplay style="display:none;"></video>
+        <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
         <div class="camera-controls">
             <button id="captureBtn" style="display:none;" onclick="capturarImagem()">Capturar Imagem</button>
             <button id="stopCameraBtn" style="display:none; background: #dc3545;" onclick="pararCamera()">Fechar Câmera</button>
@@ -153,11 +153,15 @@
             const captureBtn = document.getElementById('captureBtn');
             const stopCameraBtn = document.getElementById('stopCameraBtn');
             try {
+                // Ensure playsinline is set for iOS for inline playback
+                video.setAttribute('playsinline', ''); 
+                // Request 'environment' (rear) camera, if available
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 video.srcObject = cameraStream;
                 video.style.display = "block";
-                captureBtn.style.display = "block";
+                captureBtn.style.display = "block"; // Ensure capture button is visible
                 stopCameraBtn.style.display = "block";
+                video.play(); // Start playing the stream
             } catch (err) {
                 console.error("Erro ao acessar a câmera:", err);
                 alert("Não foi possível acessar a câmera. Verifique as permissões do navegador ou se a câmera está em uso.");
@@ -173,8 +177,9 @@
             const stopCameraBtn = document.getElementById('stopCameraBtn');
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-                cameraStream = null;
+                video.srcObject = null; // Clear the video source
+                cameraStream = null; // Clear the stream object
+                video.pause(); // Pause video playback
             }
             video.style.display = "none";
             captureBtn.style.display = "none";
@@ -183,6 +188,11 @@
 
         function capturarImagem() {
             const video = document.getElementById('video');
+            if (!video.srcObject) { // Prevent capturing if camera is not active
+                alert("Câmera não está ativa para captura.");
+                return;
+            }
+
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -208,7 +218,7 @@
             container.appendChild(removeBtn);
             previewDiv.appendChild(container);
 
-            pararCamera();
+            pararCamera(); // Stop camera after capturing
         }
 
         function atualizarEnderecoCompleto() {
