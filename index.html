@@ -752,7 +752,14 @@
 
             try {
                 video.setAttribute('playsinline', ''); 
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                // Prefer landscape resolution for video stream
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 }, // Tenta uma largura maior
+                        height: { ideal: 720 }  // E uma altura correspondente para paisagem
+                    } 
+                });
                 video.srcObject = cameraStream;
                 video.style.display = "block";
                 captureBtn.style.display = "block"; 
@@ -789,11 +796,28 @@
                 return;
             }
 
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const fotoBase64 = canvas.toDataURL("image/jpeg", 0.8);
+            const originalWidth = video.videoWidth;
+            const originalHeight = video.videoHeight;
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+            let fotoBase64;
+
+            // Determine if the video stream is in portrait orientation
+            if (originalHeight > originalWidth) {
+                // If portrait, rotate to landscape
+                canvas.width = originalHeight; // New width is old height
+                canvas.height = originalWidth; // New height is old width
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(90 * Math.PI / 180); // Rotate 90 degrees clockwise
+                ctx.drawImage(video, -originalWidth / 2, -originalHeight / 2, originalWidth, originalHeight);
+            } else {
+                // If landscape or square, draw directly
+                canvas.width = originalWidth;
+                canvas.height = originalHeight;
+                ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+            }
+
+            fotoBase64 = canvas.toDataURL("image/jpeg", 0.8);
 
             const activeData = getActiveData();
             activeData.fotos.push(fotoBase64);
@@ -926,42 +950,36 @@
             }
         }
 
-        function resizeImage(base64Str, targetWidth = 600) { 
+        // Renomeada e ajustada para aceitar largura de destino e manter proporção paisagem 16:9
+        async function resizeImageForPDF(base64Str, targetWidth = 400) { 
             return new Promise((resolve) => {
                 let img = new Image();
                 img.src = base64Str;
                 img.onload = () => {
                     let canvas = document.createElement('canvas');
-                    let originalWidth = img.width;
-                    let originalHeight = img.height;
-
-                    let targetHeight = (targetWidth / 4) * 3; 
+                    let ctx = canvas.getContext('2d');
+                    
+                    // Definir proporção paisagem (ex: 16:9 ou 4:3 para documentos)
+                    // Para 2 fotos por linha, um bom tamanho no PDF pode ser 80x60mm (4:3) ou 80x45mm (16:9)
+                    // Vamos usar 4:3 para melhor aproveitamento do espaço no PDF
+                    const targetHeight = (targetWidth / 4) * 3; 
 
                     canvas.width = targetWidth;
                     canvas.height = targetHeight;
-
-                    let ctx = canvas.getContext('2d');
-                    ctx.fillStyle = "#FFFFFF"; 
+                    
+                    ctx.fillStyle = "#FFFFFF"; // Fundo branco
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    let imgToDrawWidth, imgToDrawHeight, imgX, imgY;
+                    // Centralizar a imagem no canvas, mantendo a proporção original
+                    let ratio = Math.min(targetWidth / img.width, targetHeight / img.height);
+                    let newWidth = img.width * ratio;
+                    let newHeight = img.height * ratio;
+                    let xOffset = (targetWidth - newWidth) / 2;
+                    let yOffset = (targetHeight - newHeight) / 2;
 
-                    if (originalWidth >= originalHeight) { 
-                        let scale = targetWidth / originalWidth;
-                        imgToDrawWidth = targetWidth;
-                        imgToDrawHeight = originalHeight * scale;
-                        imgX = 0;
-                        imgY = (targetHeight - imgToDrawHeight) / 2; 
-                    } else { 
-                        let scale = targetHeight / originalHeight;
-                        imgToDrawWidth = originalWidth * scale;
-                        imgToDrawHeight = targetHeight;
-                        imgX = (targetWidth - imgToDrawWidth) / 2; 
-                        imgY = 0;
-                    }
+                    ctx.drawImage(img, xOffset, yOffset, newWidth, newHeight);
                     
-                    ctx.drawImage(img, imgX, imgY, imgToDrawWidth, imgToDrawHeight);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); // Qualidade 80%
                 };
                 img.onerror = () => {
                     console.warn("Falha ao carregar ou redimensionar imagem (Base64 inválido ou erro de rede).");
@@ -1140,15 +1158,18 @@
             yPos += 8;
             doc.setFontSize(12);
 
-            const imgWidthPdf = 60; 
-            const imgHeightPdf = (imgWidthPdf / 4) * 3; 
-            const imgMarginPdf = 5; 
+            // Ajustes para 2 fotos por linha, maiores
+            const imgWidthPdf = 80; // Largura maior para a foto
+            const imgHeightPdf = (imgWidthPdf / 4) * 3; // Mantém proporção 4:3
+            const imgMarginPdf = 10; // Espaçamento maior entre as fotos
             const startXPdf = 10; 
+            const maxImagesPerRow = 2; // Duas fotos por linha
             let currentXPdf = startXPdf;
             let imagesInRowPdf = 0;
 
             for (let i = 0; i < activeData.fotos.length; i++) {
-                if (imagesInRowPdf === 3 || (yPos + imgHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf > 0)) {
+                // Checa se precisa adicionar nova página ou nova linha
+                if (imagesInRowPdf === maxImagesPerRow || (yPos + imgHeightPdf + 10 > doc.internal.pageSize.height - 10 && imagesInRowPdf > 0)) {
                     doc.addPage();
                     yPos = 20; 
                     currentXPdf = startXPdf; 
@@ -1163,13 +1184,13 @@
                 }
 
                 try {
-                    const resizedFoto = await resizeImage(activeData.fotos[i], 800); 
+                    const resizedFoto = await resizeImageForPDF(activeData.fotos[i], 800); // Redimensiona para uma largura maior antes de adicionar ao PDF
                     if (resizedFoto) {
                         doc.addImage(resizedFoto, 'JPEG', currentXPdf, yPos, imgWidthPdf, imgHeightPdf);
                         currentXPdf += imgWidthPdf + imgMarginPdf; 
                         imagesInRowPdf++;
 
-                        if (imagesInRowPdf === 3) { 
+                        if (imagesInRowPdf === maxImagesPerRow) { 
                             yPos += imgHeightPdf + imgMarginPdf;
                             currentXPdf = startXPdf;
                             imagesInRowPdf = 0;
@@ -1193,8 +1214,18 @@
 
             document.getElementById('btnEnviarWhatsApp').disabled = false;
             
-            // Chamada automática para enviar via WhatsApp
-            enviarWhatsApp();
+            // Alteração aqui para garantir que a mensagem seja sempre exibida
+            const mensagemCompletaParaExibir = 
+                `Relatório ${activeData.pdfFileName}, enviado automaticamente via sistema.\n\n` + 
+                `Este relatório não poderá ser modificado e ficará a cargo do assistente social, para a sua revisão.\n\n` + 
+                `Qualquer dúvida, entrar em contato com o agente relacionado.\n\n` +
+                `*Por favor, copie esta mensagem e anexe o PDF '${activeData.pdfFileName}' para enviar via WhatsApp.*`;
+            
+            alert(mensagemCompletaParaExibir); // Exibe o alerta com a mensagem completa
+            
+            // Tenta abrir o WhatsApp com a mensagem pré-preenchida (se suportado), mas o foco é o alerta acima
+            const mensagemUrl = encodeURIComponent(`Relatório ${activeData.pdfFileName} - favor anexar o PDF.`);
+            window.open(`https://wa.me/?text=${mensagemUrl}`, '_blank');
         }
 
         function limparFormulario() {
@@ -1202,7 +1233,6 @@
             const currentTabSuffix = activeTab === 'agenteCampo' ? '' : '_tecnico';
 
             getElementByIdForActiveTab('nome').value = '';
-            // CORREÇÃO AQUI: ERA getElementByIdForEricssonByIdForActiveTab
             getElementByIdForActiveTab('identidade').value = ''; 
             getElementByIdForActiveTab('cpf').value = ''; 
             getElementByIdForActiveTab('endereco').value = '';
@@ -1252,50 +1282,17 @@
                 return;
             }
 
-            const mensagem = encodeURIComponent(`Relatório ${activeData.pdfFileName}, enviado automaticamente via sistema. Este relatório não poderá ser modificado e ficará a cargo do assistente social, para a sua revisão. Qualquer dúvida, entrar em contato com o agente relacionado.`);
-
-            // Converte o Data URI do PDF em um Blob
-            const byteCharacters = atob(activeData.pdfDataUri.split(',')[1]);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'application/pdf' });
-            const file = new File([blob], activeData.pdfFileName, { type: 'application/pdf' });
-
-            // Tentar usar Web Share API para compartilhar o arquivo
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try {
-                    // Tenta compartilhar, mas não podemos forçar apenas o WhatsApp aqui.
-                    // O navegador abrirá a interface de compartilhamento do sistema.
-                    await navigator.share({
-                        files: [file],
-                        title: activeData.pdfFileName,
-                        text: decodeURIComponent(mensagem), 
-                    });
-                    console.log('Compartilhado com sucesso via Web Share API.');
-                } catch (error) {
-                    console.error('Erro ao compartilhar via Web Share API:', error);
-                    // Se a API falhar ou o usuário cancelar, tentamos a abordagem de URL.
-                    abrirWhatsAppComMensagem(mensagem, "Falha no compartilhamento direto. Tente anexar o PDF manualmente.");
-                }
-            } else {
-                // Fallback: Tentar abrir o WhatsApp via URL.
-                // A API do WhatsApp Web/App não permite anexar arquivos diretamente via URL de forma universal por segurança.
-                // Será preciso orientar o usuário a anexar o arquivo.
-                abrirWhatsAppComMensagem(mensagem, "Seu navegador não suporta o compartilhamento direto de arquivos. O WhatsApp será aberto com a mensagem pré-preenchida, por favor, anexe o PDF '"+ activeData.pdfFileName +"' manualmente.");
-            }
-        }
-
-        function abrirWhatsAppComMensagem(mensagemCodificada, alertMessage) {
-            // Tenta abrir o WhatsApp diretamente com a mensagem.
-            // O anexo do PDF precisará ser feito manualmente pelo usuário no WhatsApp.
-            const whatsappUrl = `https://wa.me/?text=${mensagemCodificada}`;
-            window.open(whatsappUrl, '_blank');
-            if (alertMessage) {
-                alert(alertMessage);
-            }
+            const mensagemCompletaParaExibir = 
+                `Relatório ${activeData.pdfFileName}, enviado automaticamente via sistema.\n\n` + 
+                `Este relatório não poderá ser modificado e ficará a cargo do assistente social, para a sua revisão.\n\n` + 
+                `Qualquer dúvida, entrar em contato com o agente relacionado.\n\n` +
+                `*Por favor, copie esta mensagem e anexe o PDF '${activeData.pdfFileName}' para enviar via WhatsApp.*`;
+            
+            alert(mensagemCompletaParaExibir); // Exibe o alerta com a mensagem completa
+            
+            // Tenta abrir o WhatsApp com uma mensagem simples (o anexo é manual)
+            const mensagemUrl = encodeURIComponent(`Relatório ${activeData.pdfFileName} - favor anexar o PDF.`);
+            window.open(`https://wa.me/?text=${mensagemUrl}`, '_blank');
         }
     </script>
 </body>
