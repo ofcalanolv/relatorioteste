@@ -11,8 +11,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script>
-      // Substitua os valores abaixo pelas suas credenciais reais do firebaseConfig
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
       const firebaseConfig = {
         apiKey: "AIzaSyBF1yHRhTo_7UCmSQOldzMj-l_BFx0Upyw",
         authDomain: "alan-3af8e.firebaseapp.com",
@@ -22,13 +22,11 @@
         appId: "1:533983566282:web:04ca67fa8fc63566605733"
       };
       
-      // Inicialize o Firebase
       firebase.initializeApp(firebaseConfig);
 
-      // Crie a referência para o banco de dados, storage e autenticação
       const db = firebase.firestore();
       const storage = firebase.storage();
-      const auth = firebase.auth(); // ADICIONADO PARA AUTENTICAÇÃO
+      const auth = firebase.auth();
     </script>
     
     <style>
@@ -496,6 +494,8 @@
 
             <div id="registerForm" style="display: none;">
                 <h3>Registrar</h3>
+                <input type="text" id="registerName" placeholder="Nome completo" required>
+                <input type="tel" id="registerPhone" placeholder="Telefone" required>
                 <input type="email" id="registerEmail" placeholder="E-mail" required>
                 <input type="password" id="registerPassword" placeholder="Senha" required>
                 <input type="password" id="confirmPassword" placeholder="Confirmar Senha" required>
@@ -522,8 +522,8 @@
             <div class="container" id="appContainerAgente">
                 <h2>Cadastro de Usuário</h2>
                 <div id="codigoDisplay"></div>
-                <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável">
-                <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável" disabled>
+                <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*" disabled>
 
                 <input type="text" id="nome" placeholder="Nome do Usuário">
                 <input type="text" id="identidade" placeholder="Identidade">
@@ -599,8 +599,8 @@
             <div class="container" id="appContainerTecnico">
                 <h2>Cadastro de Usuário</h2>
                 <div id="codigoDisplayTecnico"></div>
-                <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável">
-                <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável" disabled>
+                <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*" disabled>
 
                 <input type="text" id="nome_tecnico" placeholder="Nome do Usuário">
                 <input type="text" id="identidade_tecnico" placeholder="Identidade">
@@ -922,23 +922,39 @@
             }
         }
 
-        // Função para atualizar o endereço completo (agente e técnico)
-        function atualizarEnderecoCompleto(tipo = 'agente') {
+        // NOVO: Função para atualizar o endereço completo
+        function atualizarEnderecoCompleto() {
+            const activeData = getActiveData();
             const campoEndereco = getElementByIdForActiveTab('endereco');
             const campoNumero = getElementByIdForActiveTab('numero');
             const campoComplemento = getElementByIdForActiveTab('complemento');
 
-            if (campoEndereco.value && campoNumero.value) {
-                let enderecoCompleto = `${campoEndereco.value}, ${campoNumero.value}`;
-                if (campoComplemento.value) {
-                    enderecoCompleto += ` - ${campoComplemento.value}`;
-                }
-                if (tipo === 'agente') {
-                    dadosAgenteCampo.endereco = enderecoCompleto;
-                } else {
-                    dadosTecnico.endereco = enderecoCompleto;
-                }
+            let enderecoCompleto = "";
+            
+            if (activeData.enderecoBaseDetalhes.road) {
+                enderecoCompleto += activeData.enderecoBaseDetalhes.road;
             }
+
+            if (campoNumero.value) {
+                enderecoCompleto += `, ${campoNumero.value}`;
+            }
+
+            if (activeData.enderecoBaseDetalhes.suburb) {
+                enderecoCompleto += `, ${activeData.enderecoBaseDetalhes.suburb}`;
+            }
+
+            if (campoComplemento.value) {
+                enderecoCompleto += `, ${campoComplemento.value}`;
+            }
+            
+            if (activeData.enderecoBaseDetalhes.city || activeData.enderecoBaseDetalhes.state) {
+                const cidadeEstado = [];
+                if (activeData.enderecoBaseDetalhes.city) cidadeEstado.push(activeData.enderecoBaseDetalhes.city);
+                if (activeData.enderecoBaseDetalhes.state) cidadeEstado.push(activeData.enderecoBaseDetalhes.state);
+                enderecoCompleto += ` - ${cidadeEstado.join('/')}`;
+            }
+
+            campoEndereco.value = enderecoCompleto.trim();
         }
 
         // Função para capturar a localização (agente e técnico)
@@ -974,25 +990,22 @@
                     
                     const data = await response.json();
                     
-                    const endereco = data.display_name || "Endereço não encontrado.";
+                    const enderecoBase = data.address || {};
                     gpsElement.innerText = `GPS: Latitude ${latitude.toFixed(6)}, Longitude ${longitude.toFixed(6)}`;
                     
                     const activeData = getActiveData();
                     activeData.coordenadas = `Latitude ${latitude}, Longitude ${longitude}`;
-                    activeData.enderecoBaseDetalhes = data.address || {};
+                    activeData.enderecoBaseDetalhes = enderecoBase;
 
                     const campoEndereco = getElementByIdForActiveTab('endereco');
-                    if (data.address) {
-                        let enderecoTexto = "";
-                        if (data.address.road) enderecoTexto += data.address.road;
-                        if (data.address.suburb) enderecoTexto += `, ${data.address.suburb}`;
-                        if (data.address.city) enderecoTexto += ` - ${data.address.city}`;
-                        if (data.address.state) enderecoTexto += `/${data.address.state}`;
-                        campoEndereco.value = enderecoTexto.trim();
-                    } else {
-                        campoEndereco.value = endereco;
-                    }
-                    atualizarEnderecoCompleto(activeTab); // Atualiza o endereço completo após coletar
+                    let enderecoTexto = "";
+                    if (enderecoBase.road) enderecoTexto += enderecoBase.road;
+                    if (enderecoBase.suburb) enderecoTexto += `, ${enderecoBase.suburb}`;
+                    if (enderecoBase.city) enderecoTexto += `, ${enderecoBase.city}`;
+                    if (enderecoBase.state) enderecoTexto += `/${enderecoBase.state}`;
+                    campoEndereco.value = enderecoTexto.trim();
+
+                    atualizarEnderecoCompleto(); // Atualiza o endereço completo com os dados coletados
                 } catch (error) {
                     gpsElement.innerText = `Erro: ${error.message}. Tente novamente.`;
                     console.error("Erro na coleta de GPS:", error);
@@ -1135,7 +1148,9 @@
             const formElements = document.getElementById(tabId).querySelectorAll('input, textarea, select');
             formElements.forEach(element => {
                 if (element.type === 'text' || element.type === 'tel' || element.type === 'textarea') {
-                    element.value = '';
+                    if (element.id !== 'nomeAgente' && element.id !== 'telefoneAgente' && element.id !== 'nomeTecnico' && element.id !== 'telefoneTecnico') {
+                        element.value = '';
+                    }
                 } else if (element.type === 'checkbox') {
                     element.checked = false;
                 } else if (element.tagName === 'SELECT') {
@@ -1203,8 +1218,13 @@
             yOffset += 5;
             
             // Endereço e GPS
-            addField('Endereço', getElementByIdForActiveTab('endereco').value + ` Nº ${getElementByIdForActiveTab('numero').value} - ${getElementByIdForActiveTab('complemento').value}`);
-            addField('Coordenadas GPS', activeData.coordenadas);
+            const endereco = getElementByIdForActiveTab('endereco').value;
+            if (endereco) {
+                addField('Endereço', endereco);
+            } else {
+                addField('Endereço', 'Não informado');
+            }
+            addField('Coordenadas GPS', activeData.coordenadas || 'Não informado');
             yOffset += 5;
 
             // Histórico
@@ -1331,24 +1351,44 @@
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const name = document.getElementById('registerName').value;
+            const phone = document.getElementById('registerPhone').value;
             const messageElement = document.getElementById('authMessage');
 
             if (password !== confirmPassword) {
                 messageElement.innerText = "As senhas não coincidem.";
                 return;
             }
+            if (!name || !phone) {
+                messageElement.innerText = "Nome e telefone são campos obrigatórios.";
+                return;
+            }
 
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Salvar dados adicionais no Firestore
+                await db.collection('users').doc(user.uid).set({
+                    name: name,
+                    phone: phone,
+                    email: email
+                });
+
                 messageElement.style.color = 'green';
                 messageElement.innerText = "Usuário registrado com sucesso!";
                 
-                // Redireciona para o login ou para o aplicativo principal
                 setTimeout(() => {
                     document.getElementById('authScreen').style.display = 'none';
                     document.getElementById('mainAppContent').style.display = 'block';
                     gerarCodigoAtendimento();
+                    // Preenche os campos do agente com os dados do usuário recém-registrado
+                    getElementByIdForActiveTab('nomeAgente').value = name;
+                    getElementByIdForActiveTab('telefoneAgente').value = phone;
+                    getElementByIdForActiveTab('nomeTecnico').value = name;
+                    getElementByIdForActiveTab('telefoneTecnico').value = phone;
                 }, 2000);
+
             } catch (error) {
                 let errorMessage = "Ocorreu um erro ao registrar. Tente novamente.";
                 if (error.code === 'auth/email-already-in-use') {
@@ -1373,11 +1413,23 @@
             const messageElement = document.getElementById('authMessage');
             
             try {
-                await auth.signInWithEmailAndPassword(email, password);
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Recuperar dados adicionais do Firestore
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    // Preenche os campos do agente com os dados do usuário
+                    getElementByIdForActiveTab('nomeAgente').value = userData.name || '';
+                    getElementByIdForActiveTab('telefoneAgente').value = userData.phone || '';
+                    getElementByIdForActiveTab('nomeTecnico').value = userData.name || '';
+                    getElementByIdForActiveTab('telefoneTecnico').value = userData.phone || '';
+                }
+
                 messageElement.style.color = 'green';
                 messageElement.innerText = "Login realizado com sucesso!";
                 
-                // Redireciona para a tela principal
                 setTimeout(() => {
                     document.getElementById('authScreen').style.display = 'none';
                     document.getElementById('mainAppContent').style.display = 'block';
@@ -1431,6 +1483,32 @@
                 alert("Ocorreu um erro ao sair. Tente novamente.");
             });
         }
+        
+        // Listener para verificar o estado de autenticação
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('mainAppContent').style.display = 'block';
+                gerarCodigoAtendimento();
+
+                // Recuperar dados do usuário logado
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        getElementByIdForActiveTab('nomeAgente').value = userData.name || '';
+                        getElementByIdForActiveTab('telefoneAgente').value = userData.phone || '';
+                        getElementByIdForActiveTab('nomeTecnico').value = userData.name || '';
+                        getElementByIdForActiveTab('telefoneTecnico').value = userData.phone || '';
+                    }
+                } catch (error) {
+                    console.error("Erro ao recuperar dados do usuário:", error);
+                }
+            } else {
+                document.getElementById('authScreen').style.display = 'block';
+                document.getElementById('mainAppContent').style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
