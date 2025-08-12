@@ -522,19 +522,21 @@
             <div class="container" id="appContainerAgente">
                 <h2>Cadastro de Usuário</h2>
                 <div id="codigoDisplay"></div>
+                <div id="userIdDisplay" style="display: none;"></div>
+
                 <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável" disabled>
                 <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*" disabled>
 
                 <input type="text" id="nome" placeholder="Nome do Usuário">
                 <input type="text" id="identidade" placeholder="Identidade">
-                <input type="tel" id="cpf" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this, 'agente')">
+                <input type="tel" id="cpf" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this)" onblur="searchUserByCpf()">
 
                 <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
                 <div class="inline-fields">
                     <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
                     <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
                 </div>
-                <input type="tel" id="dataNascimento" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'agente')" onchange="calcularIdade('agente')">
+                <input type="tel" id="dataNascimento" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this)" onchange="calcularIdade()">
                 <input type="text" id="idade" placeholder="Idade" readonly>
 
                 <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
@@ -599,19 +601,21 @@
             <div class="container" id="appContainerTecnico">
                 <h2>Cadastro de Usuário</h2>
                 <div id="codigoDisplayTecnico"></div>
+                <div id="userIdDisplayTecnico" style="display: none;"></div>
+                
                 <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável" disabled>
                 <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*" disabled>
 
                 <input type="text" id="nome_tecnico" placeholder="Nome do Usuário">
                 <input type="text" id="identidade_tecnico" placeholder="Identidade">
-                <input type="tel" id="cpf_tecnico" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this, 'tecnico')">
+                <input type="tel" id="cpf_tecnico" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this)" onblur="searchUserByCpf('tecnico')">
 
                 <input type="text" id="endereco_tecnico" placeholder="Endereço (coletado automaticamente)" readonly>
                 <div class="inline-fields">
                     <input type="text" id="numero_tecnico" placeholder="Número" oninput="atualizarEnderecoCompleto('tecnico')">
                     <input type="text" id="complemento_tecnico" placeholder="Complemento" oninput="atualizarEnderecoCompleto('tecnico')">
                 </div>
-                <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'tecnico')" onchange="calcularIdade('tecnico')">
+                <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this)" onchange="calcularIdade('tecnico')">
                 <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
 
                 <select id="cadUnico_tecnico" required>
@@ -642,39 +646,39 @@
                     <h3>Demandas:</h3>
                     <div class="demand-items-container"> 
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho" onchange="checkDemandas('tecnico')">
                             <label for="demandaBanho_tecnico">Banho</label>
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social" onchange="checkDemandas('tecnico')">
                             <label for="demandaAssistenteSocial_tecnico">Assistente Social</label>
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo" onchange="checkDemandas('tecnico')">
                             <label for="demandaPsicologo_tecnico">Psicólogo</label>
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento" onchange="checkDemandas('tecnico')">
                             <label for="demandaEncaminhamento_tecnico">Encaminhamento</label>
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento" onchange="checkDemandas('tecnico')">
                             <label for="demandaAcolhimento_tecnico">Acolhimento</label>
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas" onchange="checkDemandas('tecnico')">
                             <label for="demandaDuvidas_tecnico">Dúvidas</label> 
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações" onchange="checkDemandas('tecnico')">
                             <label for="demandaInformacoes_tecnico">Informações</label> 
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo" onchange="checkDemandas('tecnico')">
                             <label for="demandaCabelo_tecnico">Corte de cabelo</label>
                         </div>
                         <div class="demand-item">
-                            <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros" onchange="checkDemandasTecnico()">
+                            <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros" onchange="checkDemandas('tecnico')">
                             <label for="demandaOutros_tecnico">Outros</label>
                         </div>
                     </div> 
@@ -724,16 +728,15 @@
     <script>
         // Dados para Agente de Campo
         let dadosAgenteCampo = {
-            fotos: [], // Fotos do usuário
+            fotos: [],
             coordenadas: "",
-            enderecoBaseDetalhes: {}, // Mantido para o endereço textual
+            enderecoBaseDetalhes: {},
             codigoAtual: "",
-            mapImageUrl: "", // Não será mais usado, mas mantido para evitar erros em outras partes
             pdfDataUri: null,
             pdfFileName: "",
-            agenteDadosPreenchidos: false, // Adicione mais campos aqui se precisar de dados separados para cada aba
             nomeAgente: "",
             telefoneAgente: "",
+            userId: "", // NOVO CAMPO: ID do usuário
             nomeUsuario: "",
             identidade: "",
             cpf: "",
@@ -746,19 +749,17 @@
             demandas: []
         };
 
-        // Dados para Técnico (inicialmente duplicados para teste)
+        // Dados para Técnico
         let dadosTecnico = {
             fotos: [],
             coordenadas: "",
-            enderecoBaseDetalhes: {}, // Mantido para o endereço textual
+            enderecoBaseDetalhes: {},
             codigoAtual: "",
-            mapImageUrl: "", // Não será mais usado, mas mantido para evitar erros em outras partes
             pdfDataUri: null,
             pdfFileName: "",
-            agenteDadosPreenchidos: false, // Pode ser renomeado para 'tecnicoDadosPreenchidos'
-            // IDs de campos da aba Técnico devem ser atualizados para pegar seus próprios valores
-            nomeAgente: "", // Isso será nomeTecnico
-            telefoneAgente: "", // Isso será telefoneTecnico
+            nomeAgente: "",
+            telefoneAgente: "",
+            userId: "", // NOVO CAMPO: ID do usuário
             nomeUsuario: "",
             identidade: "",
             cpf: "",
@@ -771,13 +772,13 @@
             bolsaFamilia: "",
             centroRecuperacao: "",
             historico: "",
-            relatorioEncaminhamento: "", // NOVO CAMPO
+            relatorioEncaminhamento: "",
             demandas: [],
-            atendimentoPsicossocial: false // NOVO CAMPO
+            atendimentoPsicossocial: false
         };
 
-        let activeTab = 'agenteCampo'; // Controla qual aba está ativa
-        let cameraStream = null; // Stream da câmera principal
+        let activeTab = 'agenteCampo';
+        let cameraStream = null;
 
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
@@ -791,8 +792,8 @@
             if (activeTab === 'agenteCampo') {
                 return document.getElementById(idBase);
             } else {
-                // IDs para aba técnico
                 if (idBase === 'codigoDisplay') return document.getElementById('codigoDisplayTecnico');
+                if (idBase === 'userIdDisplay') return document.getElementById('userIdDisplayTecnico');
                 if (idBase === 'nomeAgente') return document.getElementById('nomeTecnico');
                 if (idBase === 'telefoneAgente') return document.getElementById('telefoneTecnico');
                 if (idBase === 'nome') return document.getElementById('nome_tecnico');
@@ -810,23 +811,18 @@
                 if (idBase === 'outrosDemandaInput') return document.getElementById('outrosDemandaInputTecnico');
                 if (idBase === 'fotosPreview') return document.getElementById('fotosPreviewTecnico');
                 if (idBase === 'gps') return document.getElementById('gpsTecnico');
-                // Novos campos da aba técnico
                 if (idBase === 'cadUnico') return document.getElementById('cadUnico_tecnico');
                 if (idBase === 'bolsaFamilia') return document.getElementById('bolsaFamilia_tecnico');
                 if (idBase === 'centroRecuperacao') return document.getElementById('centroRecuperacao_tecnico');
                 if (idBase === 'relatorioEncaminhamento') return document.getElementById('relatorioEncaminhamento_tecnico');
-                // NOVO
-                if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento'); // NOVO
-                if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico'); // NOVO
-                // Campos de camera são compartilhados no HTML
+                if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento');
+                if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico');
                 if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn') {
                     return document.getElementById(idBase);
                 }
-                // Para checkboxes, o 'name' é diferente
                 if (idBase === 'demandas') {
                     return document.querySelectorAll(`input[name="demandas_tecnico"]`);
                 } else if (forElement) {
-                    // Default para outros elementos
                     return document.getElementById(`${idBase}_tecnico`);
                 }
                 return null;
@@ -846,17 +842,14 @@
 
             document.getElementById(tabId).classList.add('active');
             document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
-            activeTab = tabId; // Atualiza a aba ativa
+            activeTab = tabId;
 
-            // Re-renderizar o código de atendimento e habilitar/desabilitar o botão do WhatsApp
             const activeData = getActiveData();
-            gerarCodigoAtendimento(); // Gera um novo código para a aba ativa (ou exibe o existente)
+            gerarCodigoAtendimento();
             document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri;
-
-            // Para parar a câmera se o usuário mudar de aba com a câmera aberta
             pararCamera('global');
         }
-
+        
         function gerarCodigoAtendimento() {
             const activeData = getActiveData();
             if (!activeData.codigoAtual) {
@@ -871,9 +864,68 @@
             }
             getElementByIdForActiveTab('codigoDisplay').innerText = `Relatório nº: ${activeData.codigoAtual}`;
         }
+        
+        // NOVO: Função para gerar um ID de usuário simples
+        function generateUserId() {
+            return 'USER-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
 
-        // Função para formatar o CPF (agente e técnico)
-        function formatarCPF(campo, tipo) {
+        // NOVO: Função para buscar usuário por CPF
+        async function searchUserByCpf(tipo = 'agente') {
+            const campoCpf = getElementByIdForActiveTab('cpf');
+            const cpfLimpo = campoCpf.value.replace(/\D/g, '');
+            const activeData = getActiveData();
+
+            if (cpfLimpo.length !== 11) {
+                // Limpa os campos se o CPF for inválido ou incompleto
+                getElementByIdForActiveTab('nome').value = '';
+                getElementByIdForActiveTab('identidade').value = '';
+                getElementByIdForActiveTab('dataNascimento').value = '';
+                getElementByIdForActiveTab('idade').value = '';
+                getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
+                activeData.userId = ''; // Limpa o ID do usuário
+                return;
+            }
+
+            try {
+                // Consulta o Firestore para encontrar o usuário
+                const usersRef = db.collection('users');
+                const querySnapshot = await usersRef.where('cpf', '==', cpfLimpo).get();
+
+                if (!querySnapshot.empty) {
+                    const userData = querySnapshot.docs[0].data();
+                    
+                    // Preenche os campos do formulário com os dados encontrados
+                    getElementByIdForActiveTab('nome').value = userData.nomeUsuario || '';
+                    getElementByIdForActiveTab('identidade').value = userData.identidade || '';
+                    getElementByIdForActiveTab('dataNascimento').value = userData.dataNascimento || '';
+                    calcularIdade(tipo); // Recalcula a idade
+                    
+                    // Exibe o ID do usuário
+                    const userIdDisplay = getElementByIdForActiveTab('userIdDisplay');
+                    userIdDisplay.innerText = `ID do Usuário: ${userData.userId}`;
+                    userIdDisplay.style.display = 'block';
+
+                    activeData.userId = userData.userId;
+
+                    alert('Usuário encontrado e campos preenchidos!');
+                } else {
+                    alert('Nenhum usuário encontrado com este CPF. Por favor, continue o cadastro.');
+                    // Limpa os campos para um novo cadastro
+                    getElementByIdForActiveTab('nome').value = '';
+                    getElementByIdForActiveTab('identidade').value = '';
+                    getElementByIdForActiveTab('dataNascimento').value = '';
+                    getElementByIdForActiveTab('idade').value = '';
+                    getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
+                    activeData.userId = '';
+                }
+            } catch (error) {
+                console.error("Erro ao buscar usuário:", error);
+                alert("Ocorreu um erro ao buscar o usuário. Tente novamente.");
+            }
+        }
+        
+        function formatarCPF(campo) {
             let cpf = campo.value.replace(/\D/g, '');
             if (cpf.length > 11) {
                 cpf = cpf.slice(0, 11);
@@ -884,8 +936,7 @@
             campo.value = cpf;
         }
 
-        // Função para formatar a data de nascimento (agente e técnico)
-        function formatarDataNascimento(campo, tipo) {
+        function formatarDataNascimento(campo) {
             let data = campo.value.replace(/\D/g, '');
             if (data.length > 8) {
                 data = data.slice(0, 8);
@@ -895,8 +946,7 @@
             campo.value = data;
         }
 
-        // Função para calcular a idade (agente e técnico)
-        function calcularIdade(tipo) {
+        function calcularIdade(tipo = 'agente') {
             const campoDataNascimento = getElementByIdForActiveTab('dataNascimento');
             const campoIdade = getElementByIdForActiveTab('idade');
             const dataNascimento = campoDataNascimento.value;
@@ -922,7 +972,6 @@
             }
         }
 
-        // NOVO: Função para atualizar o endereço completo
         function atualizarEnderecoCompleto() {
             const activeData = getActiveData();
             const campoEndereco = getElementByIdForActiveTab('endereco');
@@ -957,7 +1006,6 @@
             campoEndereco.value = enderecoCompleto.trim();
         }
 
-        // Função para capturar a localização (agente e técnico)
         async function coletarGPS() {
             const gpsElement = getElementByIdForActiveTab('gps');
             const btn = document.getElementById('btnColetarGPS');
@@ -1005,7 +1053,7 @@
                     if (enderecoBase.state) enderecoTexto += `/${enderecoBase.state}`;
                     campoEndereco.value = enderecoTexto.trim();
 
-                    atualizarEnderecoCompleto(); // Atualiza o endereço completo com os dados coletados
+                    atualizarEnderecoCompleto();
                 } catch (error) {
                     gpsElement.innerText = `Erro: ${error.message}. Tente novamente.`;
                     console.error("Erro na coleta de GPS:", error);
@@ -1018,7 +1066,6 @@
             }
         }
         
-        // Função para iniciar a câmera (agente e técnico)
         async function tirarFoto(tipo) {
             const videoElement = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
@@ -1032,7 +1079,7 @@
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: "environment" // Usa a câmera traseira em dispositivos móveis
+                        facingMode: "environment"
                     },
                     audio: false
                 });
@@ -1040,14 +1087,13 @@
                 videoElement.style.display = 'block';
                 captureBtn.style.display = 'inline-block';
                 stopCameraBtn.style.display = 'inline-block';
-                previewElement.style.borderStyle = 'solid'; // Muda o estilo da borda ao iniciar a câmera
+                previewElement.style.borderStyle = 'solid';
             } catch (error) {
                 console.error("Erro ao acessar a câmera:", error);
                 alert("Não foi possível acessar a câmera. Verifique as permissões.");
             }
         }
         
-        // Função para parar a câmera (agente e técnico)
         function pararCamera(tipo) {
             const videoElement = document.getElementById('video');
             const captureBtn = document.getElementById('captureBtn');
@@ -1062,11 +1108,10 @@
                 videoElement.style.display = 'none';
                 captureBtn.style.display = 'none';
                 stopCameraBtn.style.display = 'none';
-                previewElement.style.borderStyle = 'dashed'; // Retorna o estilo da borda
+                previewElement.style.borderStyle = 'dashed';
             }
         }
 
-        // Função para capturar a imagem (agente e técnico)
         function capturarImagem() {
             const videoElement = document.getElementById('video');
             const previewElement = getElementByIdForActiveTab('fotosPreview');
@@ -1102,7 +1147,6 @@
             previewElement.appendChild(fotoContainer);
         }
 
-        // Função para verificar demandas (agente e técnico)
         function checkDemandas(tipo = 'agente') {
             const demandaOutros = getElementByIdForActiveTab('demandaOutros');
             const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer');
@@ -1115,14 +1159,9 @@
             }
         }
 
-        // Chamada específica para o técnico
-        function checkDemandasTecnico() {
-            checkDemandas('tecnico');
-        }
-
         function atualizarContador(campoId = 'historico') {
             const campo = getElementByIdForActiveTab(campoId);
-            const contador = getElementByIdForActiveTab('contador'); // Supondo que o contador tenha o mesmo ID
+            const contador = getElementByIdForActiveTab('contador');
             const activeData = getActiveData();
 
             let maxChars;
@@ -1135,12 +1174,10 @@
                 contadorRelatorio.innerText = `${campo.value.length} / ${maxChars}`;
             }
         }
-
-        // Event listener para a checkbox "Outros"
+        
         document.getElementById('demandaOutros').addEventListener('change', () => checkDemandas('agente'));
         document.getElementById('demandaOutros_tecnico').addEventListener('change', () => checkDemandas('tecnico'));
         
-        // Função para limpar formulário
         function limparFormulario() {
             const activeData = getActiveData();
             const tabId = activeTab;
@@ -1158,27 +1195,23 @@
                 }
             });
 
-            // Limpa dados específicos da aba
             activeData.fotos = [];
             activeData.coordenadas = "";
             activeData.enderecoBaseDetalhes = {};
             activeData.codigoAtual = "";
             activeData.pdfDataUri = null;
-            activeData.agenteDadosPreenchidos = false;
+            activeData.userId = "";
 
-            // Limpa previews e contadores
             getElementByIdForActiveTab('fotosPreview').innerHTML = '';
             getElementByIdForActiveTab('gps').innerText = '';
             getElementByIdForActiveTab('contador').innerText = '0 / 5000';
-            
-            // Para a câmera se estiver ativa
+            getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
+
             pararCamera('global');
 
-            // Recarrega o código de atendimento para o próximo
             gerarCodigoAtendimento();
         }
-
-        // Função para gerar PDF (agente e técnico)
+        
         async function gerarPDF() {
             const activeData = getActiveData();
             const doc = new jspdf.jsPDF();
@@ -1187,8 +1220,12 @@
             doc.setFont('helvetica');
 
             doc.text(`Relatório de Atendimento Nº: ${activeData.codigoAtual}`, 20, 20);
+            if (activeData.userId) {
+                doc.text(`ID do Usuário: ${activeData.userId}`, 20, 27);
+            }
 
-            let yOffset = 30;
+
+            let yOffset = activeData.userId ? 37 : 30;
 
             const addText = (text, x, y) => {
                 doc.text(text, x, y);
@@ -1199,7 +1236,6 @@
                 yOffset += 10;
             };
 
-            // Dados do Agente/Técnico
             if (activeTab === 'agenteCampo') {
                 addField('Nome do Agente', getElementByIdForActiveTab('nomeAgente').value);
                 addField('Telefone do Agente', getElementByIdForActiveTab('telefoneAgente').value);
@@ -1209,7 +1245,6 @@
             }
             yOffset += 5;
 
-            // Dados do Usuário
             addField('Nome do Usuário', getElementByIdForActiveTab('nome').value);
             addField('Identidade', getElementByIdForActiveTab('identidade').value);
             addField('CPF', getElementByIdForActiveTab('cpf').value);
@@ -1217,7 +1252,6 @@
             addField('Idade', getElementByIdForActiveTab('idade').value);
             yOffset += 5;
             
-            // Endereço e GPS
             const endereco = getElementByIdForActiveTab('endereco').value;
             if (endereco) {
                 addField('Endereço', endereco);
@@ -1227,16 +1261,14 @@
             addField('Coordenadas GPS', activeData.coordenadas || 'Não informado');
             yOffset += 5;
 
-            // Histórico
             doc.text('Histórico do Usuário:', 20, yOffset);
             yOffset += 5;
             const historico = getElementByIdForActiveTab('historico').value;
             const historicoLines = doc.splitTextToSize(historico, 170);
             doc.text(historicoLines, 20, yOffset);
             yOffset += (historicoLines.length * 7) + 5;
-            yOffset = yOffset > 270 ? 20 : yOffset; // Quebra de página
+            yOffset = yOffset > 270 ? 20 : yOffset;
 
-            // Relatório de Encaminhamento (apenas para Técnico)
             if (activeTab === 'tecnico') {
                 const relatorio = getElementByIdForActiveTab('relatorioEncaminhamento').value;
                 if (relatorio) {
@@ -1247,11 +1279,10 @@
                     const relatorioLines = doc.splitTextToSize(relatorio, 170);
                     doc.text(relatorioLines, 20, yOffset);
                     yOffset += (relatorioLines.length * 7) + 5;
-                    yOffset = yOffset > 270 ? 20 : yOffset; // Quebra de página
+                    yOffset = yOffset > 270 ? 20 : yOffset;
                 }
             }
             
-            // Demandas
             const demandasSelecionadas = Array.from(document.querySelectorAll(`input[name="demandas${activeTab === 'tecnico' ? '_tecnico' : ''}"]:checked`))
                                             .map(checkbox => checkbox.value);
             const outrosDemandaInput = getElementByIdForActiveTab('outrosDemandaInput').value;
@@ -1270,9 +1301,8 @@
                 yOffset = yOffset > 270 ? 20 : yOffset;
             }
 
-            // Fotos
             if (activeData.fotos.length > 0) {
-                if (yOffset > 200) { // Se a página estiver quase cheia
+                if (yOffset > 200) {
                     doc.addPage();
                     yOffset = 20;
                 }
@@ -1294,7 +1324,6 @@
                 });
             }
 
-            // Gerar o PDF e armazenar no objeto de dados
             const fileName = `relatorio_${activeData.codigoAtual}.pdf`;
             const pdfDataUri = doc.output('datauristring');
             activeData.pdfDataUri = pdfDataUri;
@@ -1302,10 +1331,9 @@
 
             document.getElementById('btnEnviarWhatsApp').disabled = false;
             
-            window.open(pdfDataUri); // Abre o PDF em uma nova aba
+            window.open(pdfDataUri);
         }
         
-        // Função para enviar o PDF por WhatsApp
         function enviarWhatsApp() {
             const activeData = getActiveData();
             if (!activeData.pdfDataUri) {
@@ -1313,21 +1341,16 @@
                 return;
             }
 
-            // Criar um link temporário para o PDF
             const link = document.createElement('a');
             link.href = activeData.pdfDataUri;
             link.download = activeData.pdfFileName;
             document.body.appendChild(link);
 
-            // Clicar no link para download (precisa de uma forma de enviar pelo WhatsApp, que é mais complexa)
-            // A abordagem abaixo pode não funcionar em todos os navegadores/dispositivos
-            // O mais confiável é pedir ao usuário para compartilhar o arquivo após o download
             alert('Clique em OK para baixar o PDF e depois anexe-o manualmente na conversa do WhatsApp.');
             link.click();
             document.body.removeChild(link);
         }
 
-        // Funções de Autenticação
         function showLoginForm() {
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('registerForm').style.display = 'none';
@@ -1368,7 +1391,6 @@
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 
-                // Salvar dados adicionais no Firestore
                 await db.collection('users').doc(user.uid).set({
                     name: name,
                     phone: phone,
@@ -1382,7 +1404,6 @@
                     document.getElementById('authScreen').style.display = 'none';
                     document.getElementById('mainAppContent').style.display = 'block';
                     gerarCodigoAtendimento();
-                    // Preenche os campos do agente com os dados do usuário recém-registrado
                     getElementByIdForActiveTab('nomeAgente').value = name;
                     getElementByIdForActiveTab('telefoneAgente').value = phone;
                     getElementByIdForActiveTab('nomeTecnico').value = name;
@@ -1416,11 +1437,9 @@
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Recuperar dados adicionais do Firestore
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    // Preenche os campos do agente com os dados do usuário
                     getElementByIdForActiveTab('nomeAgente').value = userData.name || '';
                     getElementByIdForActiveTab('telefoneAgente').value = userData.phone || '';
                     getElementByIdForActiveTab('nomeTecnico').value = userData.name || '';
@@ -1473,9 +1492,7 @@
 
         function logout() {
             auth.signOut().then(() => {
-                // Limpa os dados do formulário
                 limparFormulario();
-                // Oculta o conteúdo principal e mostra a tela de autenticação
                 document.getElementById('mainAppContent').style.display = 'none';
                 document.getElementById('authScreen').style.display = 'block';
             }).catch((error) => {
@@ -1484,14 +1501,12 @@
             });
         }
         
-        // Listener para verificar o estado de autenticação
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 document.getElementById('authScreen').style.display = 'none';
                 document.getElementById('mainAppContent').style.display = 'block';
                 gerarCodigoAtendimento();
 
-                // Recuperar dados do usuário logado
                 try {
                     const userDoc = await db.collection('users').doc(user.uid).get();
                     if (userDoc.exists) {
