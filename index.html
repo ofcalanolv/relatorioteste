@@ -205,8 +205,17 @@
             max-width: 80%;
             box-sizing: border-box;
         }
-
-        /* Removido o estilo para #mapPreview, pois o elemento será removido */
+        
+        #fotoPerfilPreview {
+            display: block;
+            margin: 0 auto 20px; /* Centraliza a imagem e adiciona espaço abaixo */
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 50%; /* Torna a imagem redonda */
+            border: 3px solid var(--primary-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
 
         .camera-controls {
             display: flex;
@@ -289,6 +298,9 @@
         .taskbar button#btnLimparFormulario { color: var(--red-color); }
         .taskbar button#btnEnviarWhatsApp { color: var(--whatsapp-green); }
         .taskbar button#logoutBtn { color: var(--secondary-color); }
+        .taskbar button#btnSalvar { background: #28a745; color: var(--text-light); }
+        .taskbar button#btnSalvar:hover { background: #218838; }
+
 
         /* Estado desabilitado para botões da taskbar */
         .taskbar button:disabled {
@@ -524,6 +536,8 @@
                 <div id="codigoDisplay"></div>
                 <div id="userIdDisplay" style="display: none;"></div>
 
+                <img id="fotoPerfilPreview" src="#" alt="Foto de Perfil do Usuário" style="display:none;">
+
                 <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável" disabled>
                 <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*" disabled>
 
@@ -592,7 +606,6 @@
                     <button id="captureBtn" style="display:none;" onclick="capturarImagem('agente')">Capturar Imagem</button>
                     <button id="stopCameraBtn" style="display:none;" onclick="pararCamera('agente')">Fechar Câmera</button>
                 </div>
-                <div id="fotosPreview"></div>
                 <p id="gps"></p>
             </div>
         </div>
@@ -692,6 +705,11 @@
                     <label for="atendimentoPsicossocial_tecnico">Atendimento Psicossocial</label>
                 </div>
 
+                <video id="video_tecnico" width="100%" autoplay style="display:none;" playsinline></video>
+                <div class="camera-controls">
+                    <button id="captureBtn_tecnico" style="display:none;" onclick="capturarImagem('tecnico')">Capturar Imagem</button>
+                    <button id="stopCameraBtn_tecnico" style="display:none;" onclick="pararCamera('tecnico')">Fechar Câmera</button>
+                </div>
                 <div id="fotosPreviewTecnico"></div>
                 <p id="gpsTecnico"></p>
             </div>
@@ -699,11 +717,15 @@
     </div>
 
     <div class="taskbar" id="mainTaskbar">
+        <button id="btnSalvar" onclick="salvarDados()">
+            <i class="fas fa-save"></i>
+            <span>Salvar</span>
+        </button>
         <button id="btnColetarGPS" onclick="coletarGPS()">
             <i class="fas fa-map-marker-alt"></i>
             <span>Endereço</span>
         </button>
-        <button id="btnTirarFoto" onclick="tirarFoto('global')">
+        <button id="btnTirarFoto" onclick="tirarFoto()">
             <i class="fas fa-camera"></i>
             <span>Foto</span>
         </button>
@@ -728,7 +750,7 @@
     <script>
         // Dados para Agente de Campo
         let dadosAgenteCampo = {
-            fotos: [],
+            fotoPerfil: null, // Alterado para uma única foto
             coordenadas: "",
             enderecoBaseDetalhes: {},
             codigoAtual: "",
@@ -736,7 +758,7 @@
             pdfFileName: "",
             nomeAgente: "",
             telefoneAgente: "",
-            userId: "", // NOVO CAMPO: ID do usuário
+            userId: "",
             nomeUsuario: "",
             identidade: "",
             cpf: "",
@@ -759,7 +781,7 @@
             pdfFileName: "",
             nomeAgente: "",
             telefoneAgente: "",
-            userId: "", // NOVO CAMPO: ID do usuário
+            userId: "",
             nomeUsuario: "",
             identidade: "",
             cpf: "",
@@ -817,9 +839,10 @@
                 if (idBase === 'relatorioEncaminhamento') return document.getElementById('relatorioEncaminhamento_tecnico');
                 if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento');
                 if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico');
-                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn') {
-                    return document.getElementById(idBase);
-                }
+                if (idBase === 'fotoPerfilPreview') return null; // Campo de foto de perfil não existe na aba técnico
+                if (idBase === 'video') return document.getElementById('video_tecnico');
+                if (idBase === 'captureBtn') return document.getElementById('captureBtn_tecnico');
+                if (idBase === 'stopCameraBtn') return document.getElementById('stopCameraBtn_tecnico');
                 if (idBase === 'demandas') {
                     return document.querySelectorAll(`input[name="demandas_tecnico"]`);
                 } else if (forElement) {
@@ -847,11 +870,16 @@
             const activeData = getActiveData();
             gerarCodigoAtendimento();
             document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri;
-            pararCamera('global');
+            pararCamera();
         }
         
         function gerarCodigoAtendimento() {
             const activeData = getActiveData();
+            const campoNomeAgente = getElementByIdForActiveTab('nomeAgente');
+            const campoTelefoneAgente = getElementByIdForActiveTab('telefoneAgente');
+            const nomeAgente = campoNomeAgente ? campoNomeAgente.value : '';
+            const telefoneAgente = campoTelefoneAgente ? campoTelefoneAgente.value : '';
+
             if (!activeData.codigoAtual) {
                 const agora = new Date();
                 const d = String(agora.getDate()).padStart(2, '0');
@@ -862,7 +890,13 @@
                 const s = String(agora.getSeconds()).padStart(2, '0');
                 activeData.codigoAtual = `${d}${m}${y}-${h}${min}${s}`;
             }
-            getElementByIdForActiveTab('codigoDisplay').innerText = `Relatório nº: ${activeData.codigoAtual}`;
+
+            const codigoDisplay = getElementByIdForActiveTab('codigoDisplay');
+            if (nomeAgente && telefoneAgente) {
+                 codigoDisplay.innerText = `${activeData.codigoAtual} - ${nomeAgente} - ${telefoneAgente}`;
+            } else {
+                 codigoDisplay.innerText = `Relatório nº: ${activeData.codigoAtual}`;
+            }
         }
         
         // NOVO: Função para gerar um ID de usuário simples
@@ -870,6 +904,99 @@
             return 'USER-' + Math.random().toString(36).substr(2, 9).toUpperCase();
         }
 
+        // NOVO: Função para salvar os dados no Firestore
+        async function salvarDados() {
+            const activeData = getActiveData();
+            const tabId = activeTab;
+
+            const cpf = getElementByIdForActiveTab('cpf').value.replace(/\D/g, '');
+            const nomeUsuario = getElementByIdForActiveTab('nome').value;
+
+            if (!cpf || !nomeUsuario) {
+                alert("O CPF e o nome do usuário são obrigatórios para salvar o cadastro.");
+                return;
+            }
+
+            // Coleta todos os dados do formulário ativo
+            let dadosSalvar = {};
+            if (tabId === 'agenteCampo') {
+                dadosSalvar = {
+                    userId: activeData.userId || generateUserId(),
+                    codigoAtual: activeData.codigoAtual,
+                    nomeAgente: getElementByIdForActiveTab('nomeAgente').value,
+                    telefoneAgente: getElementByIdForActiveTab('telefoneAgente').value,
+                    nomeUsuario: nomeUsuario,
+                    identidade: getElementByIdForActiveTab('identidade').value,
+                    cpf: cpf,
+                    endereco: getElementByIdForActiveTab('endereco').value,
+                    numero: getElementByIdForActiveTab('numero').value,
+                    complemento: getElementByIdForActiveTab('complemento').value,
+                    dataNascimento: getElementByIdForActiveTab('dataNascimento').value,
+                    idade: getElementByIdForActiveTab('idade').value,
+                    historico: getElementByIdForActiveTab('historico').value,
+                    coordenadas: activeData.coordenadas,
+                    demandas: Array.from(document.querySelectorAll(`input[name="demandas"]:checked`))
+                                .map(checkbox => checkbox.value),
+                    outrasDemandas: getElementByIdForActiveTab('outrosDemandaInput').value
+                };
+            } else if (tabId === 'tecnico') {
+                dadosSalvar = {
+                    userId: activeData.userId || generateUserId(),
+                    codigoAtual: activeData.codigoAtual,
+                    nomeAgente: getElementByIdForActiveTab('nomeAgente').value,
+                    telefoneAgente: getElementByIdForActiveTab('telefoneAgente').value,
+                    nomeUsuario: nomeUsuario,
+                    identidade: getElementByIdForActiveTab('identidade').value,
+                    cpf: cpf,
+                    endereco: getElementByIdForActiveTab('endereco').value,
+                    numero: getElementByIdForActiveTab('numero').value,
+                    complemento: getElementByIdForActiveTab('complemento').value,
+                    dataNascimento: getElementByIdForActiveTab('dataNascimento').value,
+                    idade: getElementByIdForActiveTab('idade').value,
+                    cadUnico: getElementByIdForActiveTab('cadUnico').value,
+                    bolsaFamilia: getElementByIdForActiveTab('bolsaFamilia').value,
+                    centroRecuperacao: getElementByIdForActiveTab('centroRecuperacao').value,
+                    historico: getElementByIdForActiveTab('historico').value,
+                    relatorioEncaminhamento: getElementByIdForActiveTab('relatorioEncaminhamento').value,
+                    atendimentoPsicossocial: getElementByIdForActiveTab('atendimentoPsicossocial').checked,
+                    coordenadas: activeData.coordenadas,
+                    demandas: Array.from(document.querySelectorAll(`input[name="demandas_tecnico"]:checked`))
+                                .map(checkbox => checkbox.value),
+                    outrasDemandas: getElementByIdForActiveTab('outrosDemandaInput').value
+                };
+            }
+
+            try {
+                // Se a foto de perfil existe, vamos salvá-la separadamente
+                if (tabId === 'agenteCampo' && activeData.fotoPerfil) {
+                    const storageRef = storage.ref(`profile_pictures/${dadosSalvar.userId}.jpg`);
+                    await storageRef.putString(activeData.fotoPerfil, 'data_url');
+                    const photoURL = await storageRef.getDownloadURL();
+                    dadosSalvar.photoURL = photoURL;
+                }
+                
+                // Se a foto de perfil existe, vamos salvá-la separadamente
+                if (tabId === 'tecnico' && activeData.fotos.length > 0) {
+                    const photoURLs = [];
+                    for(const foto of activeData.fotos){
+                        const storageRef = storage.ref(`atendimento_fotos/${dadosSalvar.userId}/${Date.now()}.jpg`);
+                        await storageRef.putString(foto, 'data_url');
+                        const photoURL = await storageRef.getDownloadURL();
+                        photoURLs.push(photoURL);
+                    }
+                    dadosSalvar.photoURLs = photoURLs;
+                }
+
+                await db.collection('users').doc(dadosSalvar.userId).set(dadosSalvar, { merge: true });
+
+                alert("Dados salvos com sucesso!");
+
+            } catch (error) {
+                console.error("Erro ao salvar os dados:", error);
+                alert("Ocorreu um erro ao salvar. Verifique o console para mais detalhes.");
+            }
+        }
+        
         // NOVO: Função para buscar usuário por CPF
         async function searchUserByCpf(tipo = 'agente') {
             const campoCpf = getElementByIdForActiveTab('cpf');
@@ -878,12 +1005,7 @@
 
             if (cpfLimpo.length !== 11) {
                 // Limpa os campos se o CPF for inválido ou incompleto
-                getElementByIdForActiveTab('nome').value = '';
-                getElementByIdForActiveTab('identidade').value = '';
-                getElementByIdForActiveTab('dataNascimento').value = '';
-                getElementByIdForActiveTab('idade').value = '';
-                getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
-                activeData.userId = ''; // Limpa o ID do usuário
+                limparDadosDoUsuario();
                 return;
             }
 
@@ -908,20 +1030,62 @@
 
                     activeData.userId = userData.userId;
 
+                    // Carrega a foto de perfil, se existir
+                    if (activeTab === 'agenteCampo' && userData.photoURL) {
+                        const fotoPerfilPreview = document.getElementById('fotoPerfilPreview');
+                        fotoPerfilPreview.src = userData.photoURL;
+                        fotoPerfilPreview.style.display = 'block';
+                        activeData.fotoPerfil = userData.photoURL;
+                    }
+
                     alert('Usuário encontrado e campos preenchidos!');
                 } else {
                     alert('Nenhum usuário encontrado com este CPF. Por favor, continue o cadastro.');
                     // Limpa os campos para um novo cadastro
-                    getElementByIdForActiveTab('nome').value = '';
-                    getElementByIdForActiveTab('identidade').value = '';
-                    getElementByIdForActiveTab('dataNascimento').value = '';
-                    getElementByIdForActiveTab('idade').value = '';
-                    getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
-                    activeData.userId = '';
+                    limparDadosDoUsuario();
                 }
             } catch (error) {
                 console.error("Erro ao buscar usuário:", error);
                 alert("Ocorreu um erro ao buscar o usuário. Tente novamente.");
+            }
+        }
+
+        function limparDadosDoUsuario() {
+            const activeData = getActiveData();
+            
+            getElementByIdForActiveTab('nome').value = '';
+            getElementByIdForActiveTab('identidade').value = '';
+            getElementByIdForActiveTab('dataNascimento').value = '';
+            getElementByIdForActiveTab('idade').value = '';
+            getElementByIdForActiveTab('historico').value = '';
+            getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
+            getElementByIdForActiveTab('outrosDemandaInput').value = '';
+            
+            if (activeTab === 'agenteCampo') {
+                const fotoPerfilPreview = document.getElementById('fotoPerfilPreview');
+                fotoPerfilPreview.style.display = 'none';
+                fotoPerfilPreview.src = '#';
+                activeData.fotoPerfil = null;
+            } else {
+                 getElementByIdForActiveTab('fotosPreview').innerHTML = '';
+                 activeData.fotos = [];
+            }
+            
+            const demandas = document.querySelectorAll(`input[name="demandas${activeTab === 'tecnico' ? '_tecnico' : ''}"]`);
+            demandas.forEach(cb => cb.checked = false);
+            getElementByIdForActiveTab('outrosDemandaContainer').style.display = 'none';
+
+            activeData.userId = '';
+            activeData.coordenadas = "";
+            activeData.enderecoBaseDetalhes = {};
+            
+            if(activeTab === 'tecnico') {
+                getElementByIdForActiveTab('cadUnico').selectedIndex = 0;
+                getElementByIdForActiveTab('bolsaFamilia').selectedIndex = 0;
+                getElementByIdForActiveTab('centroRecuperacao').selectedIndex = 0;
+                getElementByIdForActiveTab('relatorioEncaminhamento').value = '';
+                getElementByIdForActiveTab('atendimentoPsicossocial').checked = false;
+                getElementByIdForActiveTab('contadorRelatorioEncaminhamento').innerText = '0 / 5000';
             }
         }
         
@@ -1066,14 +1230,14 @@
             }
         }
         
-        async function tirarFoto(tipo) {
-            const videoElement = document.getElementById('video');
-            const captureBtn = document.getElementById('captureBtn');
-            const stopCameraBtn = document.getElementById('stopCameraBtn');
+        async function tirarFoto() {
+            const videoElement = getElementByIdForActiveTab('video');
+            const captureBtn = getElementByIdForActiveTab('captureBtn');
+            const stopCameraBtn = getElementByIdForActiveTab('stopCameraBtn');
             const previewElement = getElementByIdForActiveTab('fotosPreview');
             
             if (cameraStream) {
-                pararCamera(tipo);
+                pararCamera();
             }
             
             try {
@@ -1087,17 +1251,20 @@
                 videoElement.style.display = 'block';
                 captureBtn.style.display = 'inline-block';
                 stopCameraBtn.style.display = 'inline-block';
-                previewElement.style.borderStyle = 'solid';
+
+                if (activeTab === 'tecnico' && previewElement) {
+                    previewElement.style.borderStyle = 'solid';
+                }
             } catch (error) {
                 console.error("Erro ao acessar a câmera:", error);
                 alert("Não foi possível acessar a câmera. Verifique as permissões.");
             }
         }
         
-        function pararCamera(tipo) {
-            const videoElement = document.getElementById('video');
-            const captureBtn = document.getElementById('captureBtn');
-            const stopCameraBtn = document.getElementById('stopCameraBtn');
+        function pararCamera() {
+            const videoElement = getElementByIdForActiveTab('video');
+            const captureBtn = getElementByIdForActiveTab('captureBtn');
+            const stopCameraBtn = getElementByIdForActiveTab('stopCameraBtn');
             const previewElement = getElementByIdForActiveTab('fotosPreview');
             
             if (cameraStream) {
@@ -1108,43 +1275,62 @@
                 videoElement.style.display = 'none';
                 captureBtn.style.display = 'none';
                 stopCameraBtn.style.display = 'none';
-                previewElement.style.borderStyle = 'dashed';
+
+                if (activeTab === 'tecnico' && previewElement) {
+                    previewElement.style.borderStyle = 'dashed';
+                }
             }
         }
 
         function capturarImagem() {
-            const videoElement = document.getElementById('video');
-            const previewElement = getElementByIdForActiveTab('fotosPreview');
-            const canvas = document.createElement('canvas');
-            canvas.width = videoElement.videoWidth;
-            canvas.height = videoElement.videoHeight;
-            canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            
-            const imageDataUrl = canvas.toDataURL('image/jpeg');
+            const videoElement = getElementByIdForActiveTab('video');
             const activeData = getActiveData();
-            activeData.fotos.push(imageDataUrl);
-            
-            const fotoContainer = document.createElement('div');
-            fotoContainer.className = 'foto-container';
-            
-            const img = document.createElement('img');
-            img.src = imageDataUrl;
-            img.className = 'foto-thumb';
-            
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-btn';
-            removeBtn.innerHTML = '&times;';
-            removeBtn.onclick = () => {
-                const fotoIndex = activeData.fotos.indexOf(imageDataUrl);
-                if (fotoIndex > -1) {
-                    activeData.fotos.splice(fotoIndex, 1);
-                    previewElement.removeChild(fotoContainer);
-                }
-            };
-            
-            fotoContainer.appendChild(img);
-            fotoContainer.appendChild(removeBtn);
-            previewElement.appendChild(fotoContainer);
+
+            if (activeTab === 'agenteCampo') {
+                const fotoPerfilPreview = document.getElementById('fotoPerfilPreview');
+                const canvas = document.createElement('canvas');
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                
+                const imageDataUrl = canvas.toDataURL('image/jpeg');
+                activeData.fotoPerfil = imageDataUrl;
+                fotoPerfilPreview.src = imageDataUrl;
+                fotoPerfilPreview.style.display = 'block';
+                
+                pararCamera();
+            } else if (activeTab === 'tecnico') {
+                const previewElement = getElementByIdForActiveTab('fotosPreview');
+                const canvas = document.createElement('canvas');
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                
+                const imageDataUrl = canvas.toDataURL('image/jpeg');
+                activeData.fotos.push(imageDataUrl);
+                
+                const fotoContainer = document.createElement('div');
+                fotoContainer.className = 'foto-container';
+                
+                const img = document.createElement('img');
+                img.src = imageDataUrl;
+                img.className = 'foto-thumb';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.onclick = () => {
+                    const fotoIndex = activeData.fotos.indexOf(imageDataUrl);
+                    if (fotoIndex > -1) {
+                        activeData.fotos.splice(fotoIndex, 1);
+                        previewElement.removeChild(fotoContainer);
+                    }
+                };
+                
+                fotoContainer.appendChild(img);
+                fotoContainer.appendChild(removeBtn);
+                previewElement.appendChild(fotoContainer);
+            }
         }
 
         function checkDemandas(tipo = 'agente') {
@@ -1196,18 +1382,26 @@
             });
 
             activeData.fotos = [];
+            activeData.fotoPerfil = null;
             activeData.coordenadas = "";
             activeData.enderecoBaseDetalhes = {};
             activeData.codigoAtual = "";
             activeData.pdfDataUri = null;
             activeData.userId = "";
 
-            getElementByIdForActiveTab('fotosPreview').innerHTML = '';
+            if (tabId === 'agenteCampo') {
+                const fotoPerfilPreview = document.getElementById('fotoPerfilPreview');
+                fotoPerfilPreview.style.display = 'none';
+                fotoPerfilPreview.src = '#';
+            } else {
+                 getElementByIdForActiveTab('fotosPreview').innerHTML = '';
+            }
+            
             getElementByIdForActiveTab('gps').innerText = '';
             getElementByIdForActiveTab('contador').innerText = '0 / 5000';
             getElementByIdForActiveTab('userIdDisplay').style.display = 'none';
 
-            pararCamera('global');
+            pararCamera();
 
             gerarCodigoAtendimento();
         }
@@ -1219,13 +1413,12 @@
             addCustomFont(doc);
             doc.setFont('helvetica');
 
-            doc.text(`Relatório de Atendimento Nº: ${activeData.codigoAtual}`, 20, 20);
-            if (activeData.userId) {
-                doc.text(`ID do Usuário: ${activeData.userId}`, 20, 27);
-            }
+            const nomeAgente = getElementByIdForActiveTab('nomeAgente').value;
+            const telefoneAgente = getElementByIdForActiveTab('telefoneAgente').value;
+            const codigoRelatorio = `${activeData.codigoAtual} - ${nomeAgente} - ${telefoneAgente}`;
+            doc.text(`Relatório: ${codigoRelatorio}`, 20, 20);
 
-
-            let yOffset = activeData.userId ? 37 : 30;
+            let yOffset = 30;
 
             const addText = (text, x, y) => {
                 doc.text(text, x, y);
@@ -1236,13 +1429,16 @@
                 yOffset += 10;
             };
 
-            if (activeTab === 'agenteCampo') {
-                addField('Nome do Agente', getElementByIdForActiveTab('nomeAgente').value);
-                addField('Telefone do Agente', getElementByIdForActiveTab('telefoneAgente').value);
-            } else {
-                addField('Nome do Técnico', getElementByIdForActiveTab('nomeAgente').value);
-                addField('Telefone do Técnico', getElementByIdForActiveTab('telefoneAgente').value);
+            if (activeData.userId) {
+                doc.text(`ID do Usuário: ${activeData.userId}`, 20, 27);
+                yOffset = 37;
             }
+
+            if (activeTab === 'agenteCampo' && activeData.fotoPerfil) {
+                doc.addImage(activeData.fotoPerfil, 'JPEG', 160, 20, 30, 30);
+                yOffset += 30;
+            }
+            
             yOffset += 5;
 
             addField('Nome do Usuário', getElementByIdForActiveTab('nome').value);
@@ -1301,7 +1497,7 @@
                 yOffset = yOffset > 270 ? 20 : yOffset;
             }
 
-            if (activeData.fotos.length > 0) {
+            if (activeTab === 'tecnico' && activeData.fotos.length > 0) {
                 if (yOffset > 200) {
                     doc.addPage();
                     yOffset = 20;
