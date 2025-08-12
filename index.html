@@ -14,12 +14,12 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script>
       // Substitua os valores abaixo pelas suas credenciais reais do firebaseConfig
       const firebaseConfig = {
-        apiKey: "sua-chave-api",
-        authDomain: "seu-dominio.firebaseapp.com",
-        projectId: "seu-projeto",
-        storageBucket: "seu-storage.appspot.com",
-        messagingSenderId: "seu-sender-id",
-        appId: "seu-app-id"
+        apiKey: "AIzaSyBF1yHRhTo_7UCmSQOldzMj-l_BFx0Upyw",
+        authDomain: "alan-3af8e.firebaseapp.com",
+        projectId: "alan-3af8e",
+        storageBucket: "alan-3af8e.firebasestorage.app",
+        messagingSenderId: "533983566282",
+        appId: "1:533983566282:web:04ca67fa8fc63566605733"
       };
       
       // Inicialize o Firebase
@@ -689,12 +689,10 @@
                 </div>
 
                 <div id="fotosPreviewTecnico"></div>
-
                 <p id="gpsTecnico"></p>
             </div>
         </div>
     </div>
-
 
     <div class="taskbar" id="mainTaskbar">
         <button id="btnColetarGPS" onclick="coletarGPS()">
@@ -713,7 +711,7 @@
             <i class="fas fa-broom"></i>
             <span>Limpar</span>
         </button>
-         <button id="btnEnviarWhatsApp" onclick="enviarWhatsApp()">
+        <button id="btnEnviarWhatsApp" onclick="enviarWhatsApp()">
             <i class="fab fa-whatsapp"></i>
             <span>WhatsApp</span>
         </button>
@@ -731,10 +729,9 @@
             enderecoBaseDetalhes: {}, // Mantido para o endereço textual
             codigoAtual: "",
             mapImageUrl: "", // Não será mais usado, mas mantido para evitar erros em outras partes
-            pdfDataUri: null, 
+            pdfDataUri: null,
             pdfFileName: "",
-            agenteDadosPreenchidos: false,
-            // Adicione mais campos aqui se precisar de dados separados para cada aba
+            agenteDadosPreenchidos: false, // Adicione mais campos aqui se precisar de dados separados para cada aba
             nomeAgente: "",
             telefoneAgente: "",
             nomeUsuario: "",
@@ -751,12 +748,12 @@
 
         // Dados para Técnico (inicialmente duplicados para teste)
         let dadosTecnico = {
-            fotos: [], 
+            fotos: [],
             coordenadas: "",
             enderecoBaseDetalhes: {}, // Mantido para o endereço textual
             codigoAtual: "",
             mapImageUrl: "", // Não será mais usado, mas mantido para evitar erros em outras partes
-            pdfDataUri: null, 
+            pdfDataUri: null,
             pdfFileName: "",
             agenteDadosPreenchidos: false, // Pode ser renomeado para 'tecnicoDadosPreenchidos'
             // IDs de campos da aba Técnico devem ser atualizados para pegar seus próprios valores
@@ -781,6 +778,7 @@
 
         let activeTab = 'agenteCampo'; // Controla qual aba está ativa
         let cameraStream = null; // Stream da câmera principal
+
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
         };
@@ -816,7 +814,8 @@
                 if (idBase === 'cadUnico') return document.getElementById('cadUnico_tecnico');
                 if (idBase === 'bolsaFamilia') return document.getElementById('bolsaFamilia_tecnico');
                 if (idBase === 'centroRecuperacao') return document.getElementById('centroRecuperacao_tecnico');
-                if (idBase === 'relatorioEncaminhamento') return document.getElementById('relatorioEncaminhamento_tecnico'); // NOVO
+                if (idBase === 'relatorioEncaminhamento') return document.getElementById('relatorioEncaminhamento_tecnico');
+                // NOVO
                 if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento'); // NOVO
                 if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico'); // NOVO
                 // Campos de camera são compartilhados no HTML
@@ -839,17 +838,22 @@
             tabs.forEach(tab => {
                 tab.classList.remove('active');
             });
+
             const buttons = document.querySelectorAll('.tab-button');
             buttons.forEach(button => {
                 button.classList.remove('active');
             });
+
             document.getElementById(tabId).classList.add('active');
             document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
             activeTab = tabId; // Atualiza a aba ativa
+
             // Re-renderizar o código de atendimento e habilitar/desabilitar o botão do WhatsApp
             const activeData = getActiveData();
             gerarCodigoAtendimento(); // Gera um novo código para a aba ativa (ou exibe o existente)
-            document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri; // Para parar a câmera se o usuário mudar de aba com a câmera aberta
+            document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri;
+
+            // Para parar a câmera se o usuário mudar de aba com a câmera aberta
             pararCamera('global');
         }
 
@@ -866,708 +870,566 @@
                 activeData.codigoAtual = `${d}${m}${y}-${h}${min}${s}`;
             }
             getElementByIdForActiveTab('codigoDisplay').innerText = `Relatório nº: ${activeData.codigoAtual}`;
-            return activeData.codigoAtual;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            gerarCodigoAtendimento(); // Listeners para a aba Agente de Campo
-            getElementByIdForActiveTab('demandaOutros').addEventListener('change', function() {
-                const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer');
-                outrosContainer.style.display = this.checked ? 'block' : 'none';
-                if (!this.checked) {
-                    getElementByIdForActiveTab('outrosDemandaInput').value = '';
-                }
-            });
-            getElementByIdForActiveTab('telefoneAgente').addEventListener('input', function (e) {
-                e.target.value = e.target.value.replace(/\D/g, '');
-            });
-            // Listeners para a aba Técnico
-            getElementByIdForActiveTab('demandaOutros', false).addEventListener('change', function() {
-                const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer', false);
-                outrosContainer.style.display = this.checked ? 'block' : 'none';
-                if (!this.checked) {
-                    getElementByIdForActiveTab('outrosDemandaInput', false).value = '';
-                }
-                checkDemandasTecnico(); // Chama para verificar a necessidade do Relatório de Encaminhamento
-            });
-            // Adiciona um listener para todos os checkboxes de demanda do técnico
-            document.querySelectorAll('input[name="demandas_tecnico"]').forEach(checkbox => {
-                checkbox.addEventListener('change', checkDemandasTecnico);
-            });
-            getElementByIdForActiveTab('telefoneAgente', false).addEventListener('input', function (e) { // Para aba tecnico
-                e.target.value = e.target.value.replace(/\D/g, '');
-            });
-            // Adiciona listener para desabilitar campos do agente após o primeiro input
-            getElementByIdForActiveTab('nomeAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
-            getElementByIdForActiveTab('telefoneAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
-            getElementByIdForActiveTab('nomeAgente', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
-            getElementByIdForActiveTab('telefoneTecnico', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
-            // Inicia o botão do WhatsApp desabilitado
-            document.getElementById('btnEnviarWhatsApp').disabled = true;
-            // Exibir a primeira aba por padrão
-            showTab('agenteCampo');
-            
-            // --- CÓDIGO DE AUTENTICAÇÃO ---
-            const authScreen = document.getElementById('authScreen');
-            const mainAppContent = document.getElementById('mainAppContent');
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const resetPasswordForm = document.getElementById('resetPasswordForm');
-            const authMessage = document.getElementById('authMessage');
-
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    authScreen.style.display = 'none';
-                    mainAppContent.style.display = 'block';
-                    console.log("Usuário logado:", user.email);
-                } else {
-                    authScreen.style.display = 'block';
-                    mainAppContent.style.display = 'none';
-                    console.log("Usuário deslogado.");
-                }
-            });
-        });
-
-        function checkAndDisableAgentFields(tabId) {
-            const currentData = tabId === 'agenteCampo' ? dadosAgenteCampo : dadosTecnico;
-            const nomeInput = document.getElementById(tabId === 'agenteCampo' ? 'nomeAgente' : 'nomeTecnico');
-            const telefoneInput = document.getElementById(tabId === 'agenteCampo' ? 'telefoneAgente' : 'telefoneTecnico');
-            if (nomeInput.value.trim() !== '' && telefoneInput.value.trim() !== '' && !currentData.agenteDadosPreenchidos) {
-                nomeInput.disabled = true;
-                telefoneInput.disabled = true;
-                currentData.agenteDadosPreenchidos = true;
+        // Função para formatar o CPF (agente e técnico)
+        function formatarCPF(campo, tipo) {
+            let cpf = campo.value.replace(/\D/g, '');
+            if (cpf.length > 11) {
+                cpf = cpf.slice(0, 11);
             }
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            campo.value = cpf;
         }
 
-        function formatarCPF(input, tabContext) {
-            let value = input.value.replace(/\D/g, '');
-            let formattedValue = '';
-            if (value.length > 0) {
-                formattedValue += value.substring(0, 3);
+        // Função para formatar a data de nascimento (agente e técnico)
+        function formatarDataNascimento(campo, tipo) {
+            let data = campo.value.replace(/\D/g, '');
+            if (data.length > 8) {
+                data = data.slice(0, 8);
             }
-            if (value.length > 3) {
-                formattedValue += '.' + value.substring(3, 6);
-            }
-            if (value.length > 6) {
-                formattedValue += '.' + value.substring(6, 9);
-            }
-            if (value.length > 9) {
-                formattedValue += '-' + value.substring(9, 11);
-            }
-            input.value = formattedValue;
-            if (value.length === 11) {
-                const nextField = tabContext === 'agente' ? document.getElementById('dataNascimento') : document.getElementById('dataNascimento_tecnico');
-                if (nextField) {
-                    nextField.focus();
-                }
-            }
+            data = data.replace(/(\d{2})(\d)/, '$1/$2');
+            data = data.replace(/(\d{2})(\d)/, '$1/$2');
+            campo.value = data;
         }
 
-        function formatarDataNascimento(input, tabContext) {
-            let value = input.value.replace(/\D/g, '');
-            let formattedValue = '';
-            if (value.length > 0) {
-                formattedValue += value.substring(0, 2);
-            }
-            if (value.length > 2) {
-                formattedValue += '/' + value.substring(2, 4);
-            }
-            if (value.length > 4) {
-                formattedValue += '/' + value.substring(4, 8);
-            }
-            input.value = formattedValue;
-            if (value.length === 8) {
-                let nextField;
-                if (tabContext === 'agente') {
-                    nextField = document.getElementById('historico');
-                } else { // aba tecnico
-                    nextField = document.getElementById('cadUnico_tecnico'); // Novo foco
-                }
-                if (nextField) {
-                    nextField.focus();
-                }
-            }
-        }
-
-        function calcularIdade(tabContext = 'agente') {
-            const dataNascimentoInput = tabContext === 'agente' ? getElementByIdForActiveTab('dataNascimento') : getElementByIdForActiveTab('dataNascimento', false);
-            const idadeInput = tabContext === 'agente' ? getElementByIdForActiveTab('idade') : getElementByIdForActiveTab('idade', false);
-            const nascimentoStr = dataNascimentoInput.value;
-            if (!nascimentoStr || nascimentoStr.length !== 10 || !nascimentoStr.includes('/')) {
-                idadeInput.value = '';
-                return;
-            }
-            const partes = nascimentoStr.split('/');
-            if (partes.length !== 3) {
-                idadeInput.value = '';
-                return;
-            }
-            const nascFormatado = `${partes[2]}-${partes[1]}-${partes[0]}`;
-            const nasc = new Date(nascFormatado);
-            if (isNaN(nasc.getTime())) {
-                idadeInput.value = '';
-                return;
-            }
-            const hoje = new Date();
-            let anos = hoje.getFullYear() - nasc.getFullYear();
-            let meses = hoje.getMonth() - nasc.getMonth();
-            if (meses < 0 || (meses === 0 && hoje.getDate() < nasc.getDate())) {
-                anos--;
-            }
-            idadeInput.value = anos >= 0 ? `${anos} anos` : '';
-        }
-
-        function coletarGPS() {
-            if ("geolocation" in navigator) {
-                getElementByIdForActiveTab('gps').innerText = "Coletando localização...";
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const activeData = getActiveData();
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
-                        activeData.coordenadas = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
-                        getElementByIdForActiveTab('gps').innerText = activeData.coordenadas;
-                    },
-                    (error) => {
-                        console.error("Erro ao obter a localização: ", error);
-                        getElementByIdForActiveTab('gps').innerText = "Erro ao obter a localização. Verifique as permissões.";
-                    }
-                );
-            } else {
-                alert("Geolocalização não é suportada por este navegador.");
-            }
-        }
-
-        function tirarFoto(origem) {
-            const videoElement = getElementByIdForActiveTab('video');
-            const captureBtn = getElementByIdForActiveTab('captureBtn');
-            const stopCameraBtn = getElementByIdForActiveTab('stopCameraBtn');
-            
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                videoElement.style.display = 'block';
-                captureBtn.style.display = 'block';
-                stopCameraBtn.style.display = 'block';
+        // Função para calcular a idade (agente e técnico)
+        function calcularIdade(tipo) {
+            const campoDataNascimento = getElementByIdForActiveTab('dataNascimento');
+            const campoIdade = getElementByIdForActiveTab('idade');
+            const dataNascimento = campoDataNascimento.value;
+            const partesData = dataNascimento.split('/');
+            if (partesData.length === 3) {
+                const dia = parseInt(partesData[0], 10);
+                const mes = parseInt(partesData[1], 10);
+                const ano = parseInt(partesData[2], 10);
                 
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-                .then(function(stream) {
-                    cameraStream = stream;
-                    videoElement.srcObject = stream;
-                })
-                .catch(function(err) {
-                    console.error("Erro ao acessar a câmera: " + err);
-                    alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
-                });
+                const hoje = new Date();
+                const anoAtual = hoje.getFullYear();
+                const mesAtual = hoje.getMonth() + 1;
+                const diaAtual = hoje.getDate();
+                
+                let idade = anoAtual - ano;
+                
+                if (mesAtual < mes || (mesAtual === mes && diaAtual < dia)) {
+                    idade--;
+                }
+                campoIdade.value = idade;
             } else {
-                alert("A API da câmera não é suportada neste navegador.");
+                campoIdade.value = "";
             }
         }
 
-        function capturarImagem(tabContext) {
-            const videoElement = getElementByIdForActiveTab('video');
-            const canvas = document.createElement('canvas');
-            canvas.width = videoElement.videoWidth;
-            canvas.height = videoElement.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            const dataUri = canvas.toDataURL('image/jpeg');
-            const activeData = getActiveData();
-            activeData.fotos.push(dataUri);
-            renderizarFotos(tabContext);
+        // Função para atualizar o endereço completo (agente e técnico)
+        function atualizarEnderecoCompleto(tipo = 'agente') {
+            const campoEndereco = getElementByIdForActiveTab('endereco');
+            const campoNumero = getElementByIdForActiveTab('numero');
+            const campoComplemento = getElementByIdForActiveTab('complemento');
+
+            if (campoEndereco.value && campoNumero.value) {
+                let enderecoCompleto = `${campoEndereco.value}, ${campoNumero.value}`;
+                if (campoComplemento.value) {
+                    enderecoCompleto += ` - ${campoComplemento.value}`;
+                }
+                if (tipo === 'agente') {
+                    dadosAgenteCampo.endereco = enderecoCompleto;
+                } else {
+                    dadosTecnico.endereco = enderecoCompleto;
+                }
+            }
         }
 
-        function pararCamera(tabContext) {
-            const videoElement = getElementByIdForActiveTab('video');
-            const captureBtn = getElementByIdForActiveTab('captureBtn');
-            const stopCameraBtn = getElementByIdForActiveTab('stopCameraBtn');
+        // Função para capturar a localização (agente e técnico)
+        async function coletarGPS() {
+            const gpsElement = getElementByIdForActiveTab('gps');
+            const btn = document.getElementById('btnColetarGPS');
+            btn.disabled = true;
+            gpsElement.innerText = "Coletando localização...";
+            
+            if ("geolocation" in navigator) {
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        });
+                    });
+                    
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'User-Agent': 'CadastroApp/1.0'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Falha na geocodificação reversa');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    const endereco = data.display_name || "Endereço não encontrado.";
+                    gpsElement.innerText = `GPS: Latitude ${latitude.toFixed(6)}, Longitude ${longitude.toFixed(6)}`;
+                    
+                    const activeData = getActiveData();
+                    activeData.coordenadas = `Latitude ${latitude}, Longitude ${longitude}`;
+                    activeData.enderecoBaseDetalhes = data.address || {};
+
+                    const campoEndereco = getElementByIdForActiveTab('endereco');
+                    if (data.address) {
+                        let enderecoTexto = "";
+                        if (data.address.road) enderecoTexto += data.address.road;
+                        if (data.address.suburb) enderecoTexto += `, ${data.address.suburb}`;
+                        if (data.address.city) enderecoTexto += ` - ${data.address.city}`;
+                        if (data.address.state) enderecoTexto += `/${data.address.state}`;
+                        campoEndereco.value = enderecoTexto.trim();
+                    } else {
+                        campoEndereco.value = endereco;
+                    }
+                    atualizarEnderecoCompleto(activeTab); // Atualiza o endereço completo após coletar
+                } catch (error) {
+                    gpsElement.innerText = `Erro: ${error.message}. Tente novamente.`;
+                    console.error("Erro na coleta de GPS:", error);
+                } finally {
+                    btn.disabled = false;
+                }
+            } else {
+                gpsElement.innerText = "Geolocalização não é suportada por este navegador.";
+                btn.disabled = false;
+            }
+        }
+        
+        // Função para iniciar a câmera (agente e técnico)
+        async function tirarFoto(tipo) {
+            const videoElement = document.getElementById('video');
+            const captureBtn = document.getElementById('captureBtn');
+            const stopCameraBtn = document.getElementById('stopCameraBtn');
+            const previewElement = getElementByIdForActiveTab('fotosPreview');
             
             if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
+                pararCamera(tipo);
+            }
+            
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "environment" // Usa a câmera traseira em dispositivos móveis
+                    },
+                    audio: false
+                });
+                videoElement.srcObject = cameraStream;
+                videoElement.style.display = 'block';
+                captureBtn.style.display = 'inline-block';
+                stopCameraBtn.style.display = 'inline-block';
+                previewElement.style.borderStyle = 'solid'; // Muda o estilo da borda ao iniciar a câmera
+            } catch (error) {
+                console.error("Erro ao acessar a câmera:", error);
+                alert("Não foi possível acessar a câmera. Verifique as permissões.");
+            }
+        }
+        
+        // Função para parar a câmera (agente e técnico)
+        function pararCamera(tipo) {
+            const videoElement = document.getElementById('video');
+            const captureBtn = document.getElementById('captureBtn');
+            const stopCameraBtn = document.getElementById('stopCameraBtn');
+            const previewElement = getElementByIdForActiveTab('fotosPreview');
+            
+            if (cameraStream) {
+                const tracks = cameraStream.getTracks();
+                tracks.forEach(track => track.stop());
+                videoElement.srcObject = null;
+                cameraStream = null;
                 videoElement.style.display = 'none';
                 captureBtn.style.display = 'none';
                 stopCameraBtn.style.display = 'none';
-                videoElement.srcObject = null;
-                cameraStream = null;
+                previewElement.style.borderStyle = 'dashed'; // Retorna o estilo da borda
             }
         }
 
-        function renderizarFotos(tabContext) {
+        // Função para capturar a imagem (agente e técnico)
+        function capturarImagem() {
+            const videoElement = document.getElementById('video');
+            const previewElement = getElementByIdForActiveTab('fotosPreview');
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            const imageDataUrl = canvas.toDataURL('image/jpeg');
             const activeData = getActiveData();
-            const fotosPreview = getElementByIdForActiveTab('fotosPreview');
-            fotosPreview.innerHTML = '';
-            activeData.fotos.forEach((dataUri, index) => {
-                const container = document.createElement('div');
-                container.className = 'foto-container';
-                const img = document.createElement('img');
-                img.src = dataUri;
-                img.className = 'foto-thumb';
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
-                removeBtn.innerHTML = '&times;';
-                removeBtn.onclick = () => {
-                    activeData.fotos.splice(index, 1);
-                    renderizarFotos(tabContext);
-                };
-                container.appendChild(img);
-                container.appendChild(removeBtn);
-                fotosPreview.appendChild(container);
-            });
+            activeData.fotos.push(imageDataUrl);
+            
+            const fotoContainer = document.createElement('div');
+            fotoContainer.className = 'foto-container';
+            
+            const img = document.createElement('img');
+            img.src = imageDataUrl;
+            img.className = 'foto-thumb';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.onclick = () => {
+                const fotoIndex = activeData.fotos.indexOf(imageDataUrl);
+                if (fotoIndex > -1) {
+                    activeData.fotos.splice(fotoIndex, 1);
+                    previewElement.removeChild(fotoContainer);
+                }
+            };
+            
+            fotoContainer.appendChild(img);
+            fotoContainer.appendChild(removeBtn);
+            previewElement.appendChild(fotoContainer);
         }
 
-        async function gerarPDF() {
+        // Função para verificar demandas (agente e técnico)
+        function checkDemandas(tipo = 'agente') {
+            const demandaOutros = getElementByIdForActiveTab('demandaOutros');
+            const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer');
+            
+            if (demandaOutros.checked) {
+                outrosContainer.style.display = 'block';
+            } else {
+                outrosContainer.style.display = 'none';
+                getElementByIdForActiveTab('outrosDemandaInput').value = '';
+            }
+        }
+
+        // Chamada específica para o técnico
+        function checkDemandasTecnico() {
+            checkDemandas('tecnico');
+        }
+
+        function atualizarContador(campoId = 'historico') {
+            const campo = getElementByIdForActiveTab(campoId);
+            const contador = getElementByIdForActiveTab('contador'); // Supondo que o contador tenha o mesmo ID
             const activeData = getActiveData();
-            const tabContext = activeTab;
-            
-            // Reúne todos os dados da aba ativa
-            activeData.nomeAgente = getElementByIdForActiveTab('nomeAgente').value;
-            activeData.telefoneAgente = getElementByIdForActiveTab('telefoneAgente').value;
-            activeData.nomeUsuario = getElementByIdForActiveTab('nome').value;
-            activeData.identidade = getElementByIdForActiveTab('identidade').value;
-            activeData.cpf = getElementByIdForActiveTab('cpf').value;
-            activeData.endereco = getElementByIdForActiveTab('endereco').value;
-            activeData.numero = getElementByIdForActiveTab('numero').value;
-            activeData.complemento = getElementByIdForActiveTab('complemento').value;
-            activeData.dataNascimento = getElementByIdForActiveTab('dataNascimento').value;
-            activeData.idade = getElementByIdForActiveTab('idade').value;
-            activeData.historico = getElementByIdForActiveTab('historico').value;
-            
-            if (tabContext === 'tecnico') {
-                activeData.cadUnico = getElementByIdForActiveTab('cadUnico', false).value;
-                activeData.bolsaFamilia = getElementByIdForActiveTab('bolsaFamilia', false).value;
-                activeData.centroRecuperacao = getElementByIdForActiveTab('centroRecuperacao', false).value;
-                activeData.historico = getElementByIdForActiveTab('historico', false).value;
-                activeData.relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false).value;
-                activeData.atendimentoPsicossocial = getElementByIdForActiveTab('atendimentoPsicossocial', false).checked;
+
+            let maxChars;
+            if (campoId === 'historico') {
+                maxChars = 5000;
+                contador.innerText = `${campo.value.length} / ${maxChars}`;
+            } else if (campoId === 'relatorioEncaminhamento') {
+                maxChars = 5000;
+                const contadorRelatorio = getElementByIdForActiveTab('contadorRelatorioEncaminhamento');
+                contadorRelatorio.innerText = `${campo.value.length} / ${maxChars}`;
             }
-
-            // Coleta as demandas marcadas
-            activeData.demandas = [];
-            const checkboxes = document.querySelectorAll(`input[name="demandas${tabContext === 'tecnico' ? '_tecnico' : ''}"]:checked`);
-            checkboxes.forEach(checkbox => {
-                if (checkbox.id.includes('Outros')) {
-                    const outrosInput = getElementByIdForActiveTab('outrosDemandaInput', tabContext === 'agenteCampo');
-                    if (outrosInput.value) {
-                         activeData.demandas.push(`Outros: ${outrosInput.value}`);
-                    } else {
-                        // Se 'outros' foi marcado, mas o campo de texto está vazio,
-                        // podemos simplesmente ignorar ou adicionar 'Outros' sem especificação.
-                        activeData.demandas.push('Outros');
-                    }
-                } else {
-                    activeData.demandas.push(checkbox.value);
-                }
-            });
-            if (tabContext === 'tecnico' && activeData.atendimentoPsicossocial) {
-                activeData.demandas.push('Atendimento Psicossocial');
-            }
-            
-            // Validações básicas
-            if (!activeData.nomeUsuario || !activeData.nomeAgente || activeData.fotos.length === 0) {
-                alert("Por favor, preencha o nome do usuário e do agente, e tire pelo menos uma foto.");
-                return;
-            }
-
-            const doc = new window.jspdf.jsPDF();
-            addCustomFont(doc);
-            doc.setFont('helvetica');
-
-            // Salvar no Firebase antes de gerar o PDF
-            const codigo = gerarCodigoAtendimento();
-            const docRef = db.collection(tabContext).doc(codigo);
-
-            // Armazenar as fotos no Storage
-            const fotoUrls = [];
-            for (const [index, fotoUri] of activeData.fotos.entries()) {
-                const fotoRef = storage.ref(`${tabContext}/${codigo}/foto_${index + 1}.jpeg`);
-                const snapshot = await fotoRef.putString(fotoUri, 'data_url');
-                const url = await snapshot.ref.getDownloadURL();
-                fotoUrls.push(url);
-            }
-            
-            await docRef.set({
-                ...activeData,
-                fotos: fotoUrls, // Salva as URLs públicas no documento
-                timestamp: new Date()
-            }).then(() => {
-                console.log("Documento salvo com sucesso no Firestore!");
-            }).catch((error) => {
-                console.error("Erro ao salvar documento: ", error);
-            });
-            
-            // Geração do PDF
-            const margin = 15;
-            let y = 15;
-
-            doc.setFontSize(22);
-            doc.setTextColor('#007bff');
-            doc.text(`Relatório de Atendimento nº: ${codigo}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-            y += 10;
-            doc.line(margin, y, doc.internal.pageSize.getWidth() - margin, y);
-            y += 8;
-
-            doc.setFontSize(12);
-            doc.setTextColor('#343a40');
-
-            doc.text(`Agente Responsável: ${activeData.nomeAgente} (Tel: ${activeData.telefoneAgente})`, margin, y);
-            y += 8;
-            doc.text(`Usuário: ${activeData.nomeUsuario}`, margin, y);
-            y += 8;
-            doc.text(`Identidade: ${activeData.identidade}`, margin, y);
-            y += 8;
-            doc.text(`CPF: ${activeData.cpf}`, margin, y);
-            y += 8;
-            doc.text(`Data de Nascimento: ${activeData.dataNascimento} (${activeData.idade})`, margin, y);
-            y += 8;
-            doc.text(`Coordenadas GPS: ${activeData.coordenadas}`, margin, y);
-            y += 8;
-            
-            // Verificação de quebra de página
-            if (y + 100 > doc.internal.pageSize.getHeight()) {
-                doc.addPage();
-                y = margin;
-            }
-
-            doc.setFontSize(14);
-            doc.setTextColor('#007bff');
-            doc.text('Dados de Localização', margin, y);
-            y += 8;
-            doc.setFontSize(12);
-            doc.setTextColor('#343a40');
-            doc.text(`Endereço: ${activeData.endereco} | Nº: ${activeData.numero} | Complemento: ${activeData.complemento}`, margin, y);
-            y += 10;
-
-            if (tabContext === 'tecnico') {
-                if (y + 100 > doc.internal.pageSize.getHeight()) {
-                    doc.addPage();
-                    y = margin;
-                }
-                doc.setFontSize(14);
-                doc.setTextColor('#007bff');
-                doc.text('Informações Adicionais (Técnico)', margin, y);
-                y += 8;
-                doc.setFontSize(12);
-                doc.setTextColor('#343a40');
-                doc.text(`CAD Único: ${activeData.cadUnico}`, margin, y);
-                y += 8;
-                doc.text(`Bolsa-Família: ${activeData.bolsaFamilia}`, margin, y);
-                y += 8;
-                doc.text(`Passou por centro de recuperação: ${activeData.centroRecuperacao}`, margin, y);
-                y += 8;
-
-                if (y + 100 > doc.internal.pageSize.getHeight()) {
-                    doc.addPage();
-                    y = margin;
-                }
-            }
-
-            doc.setFontSize(14);
-            doc.setTextColor('#007bff');
-            doc.text('Histórico do Usuário', margin, y);
-            y += 8;
-            doc.setFontSize(12);
-            doc.setTextColor('#343a40');
-            const splitHistorico = doc.splitTextToSize(activeData.historico, doc.internal.pageSize.getWidth() - 2 * margin);
-            doc.text(splitHistorico, margin, y);
-            y += splitHistorico.length * 7;
-            
-            if (tabContext === 'tecnico' && activeData.relatorioEncaminhamento) {
-                if (y + 100 > doc.internal.pageSize.getHeight()) {
-                    doc.addPage();
-                    y = margin;
-                }
-                doc.setFontSize(14);
-                doc.setTextColor('#007bff');
-                doc.text('Relatório de Encaminhamento', margin, y);
-                y += 8;
-                doc.setFontSize(12);
-                doc.setTextColor('#343a40');
-                const splitRelatorio = doc.splitTextToSize(activeData.relatorioEncaminhamento, doc.internal.pageSize.getWidth() - 2 * margin);
-                doc.text(splitRelatorio, margin, y);
-                y += splitRelatorio.length * 7;
-            }
-
-            if (y + 100 > doc.internal.pageSize.getHeight()) {
-                doc.addPage();
-                y = margin;
-            }
-
-            doc.setFontSize(14);
-            doc.setTextColor('#007bff');
-            doc.text('Demandas', margin, y);
-            y += 8;
-            doc.setFontSize(12);
-            doc.setTextColor('#343a40');
-            const demandasTexto = activeData.demandas.length > 0 ? activeData.demandas.join(', ') : 'Nenhuma demanda registrada.';
-            const splitDemandas = doc.splitTextToSize(demandasTexto, doc.internal.pageSize.getWidth() - 2 * margin);
-            doc.text(splitDemandas, margin, y);
-            y += splitDemandas.length * 7;
-
-            doc.addPage();
-            y = margin;
-
-            doc.setFontSize(14);
-            doc.setTextColor('#007bff');
-            doc.text('Fotos', margin, y);
-            y += 8;
-
-            for (const fotoUrl of fotoUrls) {
-                if (y + 80 > doc.internal.pageSize.getHeight()) {
-                    doc.addPage();
-                    y = margin;
-                }
-                try {
-                    const imgData = await fetch(fotoUrl).then(res => res.blob()).then(blob => new Promise(resolve => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    }));
-                    doc.addImage(imgData, 'JPEG', margin, y, 60, 60);
-                    y += 70;
-                } catch (e) {
-                    console.error("Erro ao adicionar imagem ao PDF: ", e);
-                    doc.text("Erro ao carregar a imagem.", margin, y);
-                    y += 10;
-                }
-            }
-
-            const pdfFileName = `${activeData.nomeUsuario.replace(/\s+/g, '_')}_${codigo}.pdf`;
-            const pdfBlob = doc.output('blob');
-            activeData.pdfDataUri = URL.createObjectURL(pdfBlob);
-            activeData.pdfFileName = pdfFileName;
-            
-            document.getElementById('btnEnviarWhatsApp').disabled = false;
-            doc.save(pdfFileName);
-            alert("PDF gerado com sucesso!");
         }
 
+        // Event listener para a checkbox "Outros"
+        document.getElementById('demandaOutros').addEventListener('change', () => checkDemandas('agente'));
+        document.getElementById('demandaOutros_tecnico').addEventListener('change', () => checkDemandas('tecnico'));
+        
+        // Função para limpar formulário
         function limparFormulario() {
-            if (!confirm("Tem certeza que deseja limpar o formulário?")) {
-                return;
-            }
-
             const activeData = getActiveData();
-            const tabContext = activeTab;
-            
-            const formInputs = document.querySelectorAll(`#${tabContext} input, #${tabContext} select, #${tabContext} textarea`);
-            formInputs.forEach(input => {
-                if (input.type === 'checkbox') {
-                    input.checked = false;
-                } else if (input.type === 'select-one') {
-                    input.selectedIndex = 0;
-                } else {
-                    input.value = '';
+            const tabId = activeTab;
+
+            const formElements = document.getElementById(tabId).querySelectorAll('input, textarea, select');
+            formElements.forEach(element => {
+                if (element.type === 'text' || element.type === 'tel' || element.type === 'textarea') {
+                    element.value = '';
+                } else if (element.type === 'checkbox') {
+                    element.checked = false;
+                } else if (element.tagName === 'SELECT') {
+                    element.selectedIndex = 0;
                 }
-                input.disabled = false;
             });
-            
-            // Limpa as fotos e o contador
+
+            // Limpa dados específicos da aba
             activeData.fotos = [];
             activeData.coordenadas = "";
             activeData.enderecoBaseDetalhes = {};
-            activeData.agenteDadosPreenchidos = false;
+            activeData.codigoAtual = "";
             activeData.pdfDataUri = null;
-            activeData.pdfFileName = "";
-            
+            activeData.agenteDadosPreenchidos = false;
+
+            // Limpa previews e contadores
             getElementByIdForActiveTab('fotosPreview').innerHTML = '';
             getElementByIdForActiveTab('gps').innerText = '';
             getElementByIdForActiveTab('contador').innerText = '0 / 5000';
             
-            if (tabContext === 'tecnico') {
-                getElementByIdForActiveTab('contadorRelatorioEncaminhamento').innerText = '0 / 5000';
-            }
+            // Para a câmera se estiver ativa
+            pararCamera('global');
 
-            document.getElementById('outrosDemandaContainer').style.display = 'none';
-            if (tabContext === 'tecnico') {
-                document.getElementById('outrosDemandaContainerTecnico').style.display = 'none';
-            }
-            
-            document.getElementById('btnEnviarWhatsApp').disabled = true;
-
-            // Gera um novo código para o próximo atendimento
-            activeData.codigoAtual = "";
+            // Recarrega o código de atendimento para o próximo
             gerarCodigoAtendimento();
         }
 
-        function atualizarContador(campo = 'historico') {
+        // Função para gerar PDF (agente e técnico)
+        async function gerarPDF() {
             const activeData = getActiveData();
-            const textarea = campo === 'historico' ? getElementByIdForActiveTab('historico') : getElementByIdForActiveTab('relatorioEncaminhamento', false);
-            const contadorDiv = campo === 'historico' ? getElementByIdForActiveTab('contador') : getElementByIdForActiveTab('contadorRelatorioEncaminhamento');
-            const maxLength = textarea.getAttribute('maxlength');
-            contadorDiv.innerText = `${textarea.value.length} / ${maxLength}`;
+            const doc = new jspdf.jsPDF();
+
+            addCustomFont(doc);
+            doc.setFont('helvetica');
+
+            doc.text(`Relatório de Atendimento Nº: ${activeData.codigoAtual}`, 20, 20);
+
+            let yOffset = 30;
+
+            const addText = (text, x, y) => {
+                doc.text(text, x, y);
+            };
+
+            const addField = (label, value) => {
+                addText(`${label}: ${value}`, 20, yOffset);
+                yOffset += 10;
+            };
+
+            // Dados do Agente/Técnico
+            if (activeTab === 'agenteCampo') {
+                addField('Nome do Agente', getElementByIdForActiveTab('nomeAgente').value);
+                addField('Telefone do Agente', getElementByIdForActiveTab('telefoneAgente').value);
+            } else {
+                addField('Nome do Técnico', getElementByIdForActiveTab('nomeAgente').value);
+                addField('Telefone do Técnico', getElementByIdForActiveTab('telefoneAgente').value);
+            }
+            yOffset += 5;
+
+            // Dados do Usuário
+            addField('Nome do Usuário', getElementByIdForActiveTab('nome').value);
+            addField('Identidade', getElementByIdForActiveTab('identidade').value);
+            addField('CPF', getElementByIdForActiveTab('cpf').value);
+            addField('Data de Nascimento', getElementByIdForActiveTab('dataNascimento').value);
+            addField('Idade', getElementByIdForActiveTab('idade').value);
+            yOffset += 5;
+            
+            // Endereço e GPS
+            addField('Endereço', getElementByIdForActiveTab('endereco').value + ` Nº ${getElementByIdForActiveTab('numero').value} - ${getElementByIdForActiveTab('complemento').value}`);
+            addField('Coordenadas GPS', activeData.coordenadas);
+            yOffset += 5;
+
+            // Histórico
+            doc.text('Histórico do Usuário:', 20, yOffset);
+            yOffset += 5;
+            const historico = getElementByIdForActiveTab('historico').value;
+            const historicoLines = doc.splitTextToSize(historico, 170);
+            doc.text(historicoLines, 20, yOffset);
+            yOffset += (historicoLines.length * 7) + 5;
+            yOffset = yOffset > 270 ? 20 : yOffset; // Quebra de página
+
+            // Relatório de Encaminhamento (apenas para Técnico)
+            if (activeTab === 'tecnico') {
+                const relatorio = getElementByIdForActiveTab('relatorioEncaminhamento').value;
+                if (relatorio) {
+                    doc.addPage();
+                    yOffset = 20;
+                    doc.text('Relatório de Encaminhamento:', 20, yOffset);
+                    yOffset += 5;
+                    const relatorioLines = doc.splitTextToSize(relatorio, 170);
+                    doc.text(relatorioLines, 20, yOffset);
+                    yOffset += (relatorioLines.length * 7) + 5;
+                    yOffset = yOffset > 270 ? 20 : yOffset; // Quebra de página
+                }
+            }
+            
+            // Demandas
+            const demandasSelecionadas = Array.from(document.querySelectorAll(`input[name="demandas${activeTab === 'tecnico' ? '_tecnico' : ''}"]:checked`))
+                                            .map(checkbox => checkbox.value);
+            const outrosDemandaInput = getElementByIdForActiveTab('outrosDemandaInput').value;
+            if (outrosDemandaInput) {
+                demandasSelecionadas.push(`Outros: ${outrosDemandaInput}`);
+            }
+
+            if (demandasSelecionadas.length > 0) {
+                doc.text('Demandas:', 20, yOffset);
+                yOffset += 5;
+                demandasSelecionadas.forEach(demanda => {
+                    doc.text(`- ${demanda}`, 25, yOffset);
+                    yOffset += 7;
+                });
+                yOffset += 5;
+                yOffset = yOffset > 270 ? 20 : yOffset;
+            }
+
+            // Fotos
+            if (activeData.fotos.length > 0) {
+                if (yOffset > 200) { // Se a página estiver quase cheia
+                    doc.addPage();
+                    yOffset = 20;
+                }
+                doc.text('Fotos:', 20, yOffset);
+                yOffset += 10;
+                let xOffset = 20;
+                activeData.fotos.forEach(fotoDataUrl => {
+                    if (yOffset + 50 > doc.internal.pageSize.height) {
+                        doc.addPage();
+                        yOffset = 20;
+                        xOffset = 20;
+                    }
+                    doc.addImage(fotoDataUrl, 'JPEG', xOffset, yOffset, 40, 40);
+                    xOffset += 50;
+                    if (xOffset > 170) {
+                        xOffset = 20;
+                        yOffset += 50;
+                    }
+                });
+            }
+
+            // Gerar o PDF e armazenar no objeto de dados
+            const fileName = `relatorio_${activeData.codigoAtual}.pdf`;
+            const pdfDataUri = doc.output('datauristring');
+            activeData.pdfDataUri = pdfDataUri;
+            activeData.pdfFileName = fileName;
+
+            document.getElementById('btnEnviarWhatsApp').disabled = false;
+            
+            window.open(pdfDataUri); // Abre o PDF em uma nova aba
         }
         
-        function atualizarEnderecoCompleto(tabContext = 'agente') {
-            const endereco = tabContext === 'agente' ? getElementByIdForActiveTab('endereco') : getElementByIdForActiveTab('endereco', false);
-            const numero = tabContext === 'agente' ? getElementByIdForActiveTab('numero') : getElementByIdForActiveTab('numero', false);
-            const complemento = tabContext === 'agente' ? getElementByIdForActiveTab('complemento') : getElementByIdForActiveTab('complemento', false);
-            
-            let enderecoCompleto = '';
-            if (endereco.value) {
-                enderecoCompleto += endereco.value;
-            }
-            if (numero.value) {
-                enderecoCompleto += `, ${numero.value}`;
-            }
-            if (complemento.value) {
-                enderecoCompleto += `, ${complemento.value}`;
-            }
-            
-            // Não é necessário atualizar o valor do input de endereço, pois ele é somente leitura.
-            // O valor completo será usado na geração do PDF.
-        }
-
+        // Função para enviar o PDF por WhatsApp
         function enviarWhatsApp() {
             const activeData = getActiveData();
             if (!activeData.pdfDataUri) {
-                alert("Nenhum PDF foi gerado. Por favor, gere o PDF primeiro.");
+                alert("Por favor, gere o PDF primeiro.");
                 return;
             }
-            
-            const numeroTel = activeTab === 'agenteCampo' ? getElementByIdForActiveTab('telefoneAgente').value : getElementByIdForActiveTab('telefoneTecnico', false).value;
-            const nomeAgente = activeTab === 'agenteCampo' ? getElementByIdForActiveTab('nomeAgente').value : getElementByIdForActiveTab('nomeTecnico', false).value;
-            const nomeUsuario = activeTab === 'agenteCampo' ? getElementByIdForActiveTab('nome').value : getElementByIdForActiveTab('nome', false).value;
-            
-            if (!numeroTel) {
-                alert("Por favor, preencha o telefone do agente responsável para enviar o relatório.");
-                return;
-            }
-            
-            // Simula o download do PDF para o usuário
+
+            // Criar um link temporário para o PDF
             const link = document.createElement('a');
             link.href = activeData.pdfDataUri;
             link.download = activeData.pdfFileName;
             document.body.appendChild(link);
+
+            // Clicar no link para download (precisa de uma forma de enviar pelo WhatsApp, que é mais complexa)
+            // A abordagem abaixo pode não funcionar em todos os navegadores/dispositivos
+            // O mais confiável é pedir ao usuário para compartilhar o arquivo após o download
+            alert('Clique em OK para baixar o PDF e depois anexe-o manualmente na conversa do WhatsApp.');
             link.click();
             document.body.removeChild(link);
-
-            // Mensagem de texto para o WhatsApp
-            const mensagem = `Olá, ${nomeAgente}! O relatório de atendimento para o usuário ${nomeUsuario} foi gerado e salvo.`;
-            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${numeroTel}&text=${encodeURIComponent(mensagem)}`;
-            
-            window.open(urlWhatsApp, '_blank');
         }
 
-        function checkDemandasTecnico() {
-            const demandasTecnicoCheckboxes = document.querySelectorAll('input[name="demandas_tecnico"]');
-            const relatorioEncaminhamentoTextarea = document.getElementById('relatorioEncaminhamento_tecnico');
-            let demandaEncaminhamentoMarcada = false;
-
-            demandasTecnicoCheckboxes.forEach(checkbox => {
-                if (checkbox.id === 'demandaEncaminhamento_tecnico' && checkbox.checked) {
-                    demandaEncaminhamentoMarcada = true;
-                }
-            });
-
-            if (demandaEncaminhamentoMarcada) {
-                relatorioEncaminhamentoTextarea.style.display = 'block';
-                document.getElementById('contadorRelatorioEncaminhamento').style.display = 'block';
-            } else {
-                relatorioEncaminhamentoTextarea.style.display = 'none';
-                document.getElementById('contadorRelatorioEncaminhamento').style.display = 'none';
-            }
-        }
-
+        // Funções de Autenticação
         function showLoginForm() {
-            loginForm.style.display = 'block';
-            registerForm.style.display = 'none';
-            resetPasswordForm.style.display = 'none';
-            authMessage.textContent = ''; // Limpa mensagens de erro
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('resetPasswordForm').style.display = 'none';
         }
 
         function showRegisterForm() {
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'block';
-            resetPasswordForm.style.display = 'none';
-            authMessage.textContent = '';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('resetPasswordForm').style.display = 'none';
         }
 
         function showResetPassword() {
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'none';
-            resetPasswordForm.style.display = 'block';
-            authMessage.textContent = '';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('resetPasswordForm').style.display = 'block';
         }
 
-        // Função de Registro
-        document.getElementById('registerBtn').addEventListener('click', async () => {
+        document.getElementById('registerBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageElement = document.getElementById('authMessage');
 
             if (password !== confirmPassword) {
-                authMessage.textContent = 'As senhas não coincidem!';
-                return;
-            }
-            if (password.length < 6) {
-                authMessage.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                messageElement.innerText = "As senhas não coincidem.";
                 return;
             }
 
             try {
-                await auth.createUserWithEmailAndPassword(email, password);
-                authMessage.textContent = 'Conta criada com sucesso! Você está logado.';
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                messageElement.style.color = 'green';
+                messageElement.innerText = "Usuário registrado com sucesso!";
+                
+                // Redireciona para o login ou para o aplicativo principal
+                setTimeout(() => {
+                    document.getElementById('authScreen').style.display = 'none';
+                    document.getElementById('mainAppContent').style.display = 'block';
+                    gerarCodigoAtendimento();
+                }, 2000);
             } catch (error) {
-                console.error("Erro no registro:", error);
+                let errorMessage = "Ocorreu um erro ao registrar. Tente novamente.";
                 if (error.code === 'auth/email-already-in-use') {
-                    authMessage.textContent = 'Este e-mail já está em uso.';
+                    errorMessage = "Este e-mail já está em uso.";
                 } else if (error.code === 'auth/invalid-email') {
-                    authMessage.textContent = 'E-mail inválido.';
-                } else {
-                    authMessage.textContent = 'Erro ao registrar: ' + error.message;
+                    errorMessage = "O e-mail inserido é inválido.";
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMessage = "Erro de conexão. Verifique sua internet.";
                 }
+                console.error("Erro ao registrar:", error);
+                messageElement.style.color = 'red';
+                messageElement.innerText = errorMessage;
             }
         });
 
-        // Função de Login
-        document.getElementById('loginBtn').addEventListener('click', async () => {
+        document.getElementById('loginBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-
+            const messageElement = document.getElementById('authMessage');
+            
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                authMessage.textContent = 'Login realizado com sucesso!';
+                messageElement.style.color = 'green';
+                messageElement.innerText = "Login realizado com sucesso!";
+                
+                // Redireciona para a tela principal
+                setTimeout(() => {
+                    document.getElementById('authScreen').style.display = 'none';
+                    document.getElementById('mainAppContent').style.display = 'block';
+                    gerarCodigoAtendimento();
+                }, 1000);
+
             } catch (error) {
-                console.error("Erro no login:", error);
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    authMessage.textContent = 'E-mail ou senha incorretos.';
-                } else if (error.code === 'auth/invalid-email') {
-                    authMessage.textContent = 'E-mail inválido.';
-                } else if (error.code === 'auth/too-many-requests') {
-                    authMessage.textContent = 'Muitas tentativas de login. Tente novamente mais tarde.';
+                let errorMessage = "Erro no login. Verifique seu e-mail e senha.";
+                if (error.code === 'auth/invalid-email') {
+                    errorMessage = "O e-mail inserido é inválido.";
+                } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = "E-mail ou senha incorretos.";
                 }
-                else {
-                    authMessage.textContent = 'Erro ao fazer login: ' + error.message;
-                }
+                console.error("Erro ao fazer login:", error);
+                messageElement.style.color = 'red';
+                messageElement.innerText = errorMessage;
             }
         });
 
-        // Função de Redefinição de Senha
-        document.getElementById('resetPasswordBtn').addEventListener('click', async () => {
+        document.getElementById('resetPasswordBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
             const email = document.getElementById('resetEmail').value;
+            const messageElement = document.getElementById('authMessage');
+
             try {
                 await auth.sendPasswordResetEmail(email);
-                authMessage.textContent = 'Link de redefinição de senha enviado para seu e-mail.';
-                showLoginForm(); // Volta para a tela de login
+                messageElement.style.color = 'green';
+                messageElement.innerText = "Um e-mail de redefinição de senha foi enviado para você.";
             } catch (error) {
-                console.error("Erro ao redefinir senha:", error);
-                if (error.code === 'auth/user-not-found') {
-                    authMessage.textContent = 'Não há usuário com este e-mail.';
-                } else if (error.code === 'auth/invalid-email') {
-                    authMessage.textContent = 'E-mail inválido.';
-                } else {
-                    authMessage.textContent = 'Erro ao redefinir senha: ' + error.message;
+                let errorMessage = "Ocorreu um erro ao enviar o e-mail. Verifique o endereço.";
+                if (error.code === 'auth/invalid-email') {
+                    errorMessage = "O e-mail inserido é inválido.";
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage = "Não há usuário com este e-mail.";
                 }
+                console.error("Erro ao redefinir senha:", error);
+                messageElement.style.color = 'red';
+                messageElement.innerText = errorMessage;
             }
         });
 
-        // Função de Logout (Adicione um botão de logout em algum lugar no seu mainAppContent, ex: na taskbar)
-        async function logout() {
-            try {
-                await auth.signOut();
-                console.log("Usuário deslogado.");
-            } catch (error) {
+        function logout() {
+            auth.signOut().then(() => {
+                // Limpa os dados do formulário
+                limparFormulario();
+                // Oculta o conteúdo principal e mostra a tela de autenticação
+                document.getElementById('mainAppContent').style.display = 'none';
+                document.getElementById('authScreen').style.display = 'block';
+            }).catch((error) => {
                 console.error("Erro ao fazer logout:", error);
-                alert("Ocorreu um erro ao sair. Por favor, tente novamente.");
-            }
+                alert("Ocorreu um erro ao sair. Tente novamente.");
+            });
         }
     </script>
 </body>
