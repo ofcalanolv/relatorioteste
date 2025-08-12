@@ -11,8 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    
-    <script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script>
       // Substitua os valores abaixo pelas suas credenciais reais do firebaseConfig
       const firebaseConfig = {
         apiKey: "sua-chave-api",
@@ -26,9 +25,10 @@
       // Inicialize o Firebase
       firebase.initializeApp(firebaseConfig);
 
-      // Crie a referência para o banco de dados e storage
+      // Crie a referência para o banco de dados, storage e autenticação
       const db = firebase.firestore();
       const storage = firebase.storage();
+      const auth = firebase.auth(); // ADICIONADO PARA AUTENTICAÇÃO
     </script>
     
     <style>
@@ -290,6 +290,7 @@
         .taskbar button#btnGerarPDF { color: var(--yellow-dark); } /* Amarelo mais escuro para melhor contraste */
         .taskbar button#btnLimparFormulario { color: var(--red-color); }
         .taskbar button#btnEnviarWhatsApp { color: var(--whatsapp-green); }
+        .taskbar button#logoutBtn { color: var(--secondary-color); }
 
         /* Estado desabilitado para botões da taskbar */
         .taskbar button:disabled {
@@ -433,187 +434,264 @@
         select option:first-child {
             color: var(--secondary-color); /* Cor para o placeholder */
         }
+        /* Estilos adicionados para a tela de autenticação */
+        .auth-container {
+            max-width: 400px;
+            margin-top: 50px;
+            padding: 30px;
+            background: var(--text-light);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
 
+        .auth-button {
+            background: var(--primary-color);
+            color: var(--text-light);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-top: 15px;
+            width: 100%;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .auth-button:hover {
+            background: var(--primary-dark);
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: var(--secondary-color);
+        }
+
+        .auth-switch a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-    <div class="tabs">
-        <button class="tab-button active" onclick="showTab('agenteCampo')">Agente de Campo</button>
-        <button class="tab-button" onclick="showTab('tecnico')">Técnico</button>
-    </div>
+    <div id="authScreen" style="display: block;">
+        <div class="container auth-container">
+            <h2>Bem-vindo!</h2>
+            <div id="authMessage" style="color: red; text-align: center; margin-bottom: 15px;"></div>
 
-    <div id="agenteCampo" class="tab-content active">
-        <div class="container" id="appContainerAgente">
-            <h2>Cadastro de Usuário</h2>
-            <div id="codigoDisplay"></div> <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável">
-            <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*">
-
-            <input type="text" id="nome" placeholder="Nome do Usuário">
-            <input type="text" id="identidade" placeholder="Identidade">
-            <input type="tel" id="cpf" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this, 'agente')">
-
-            <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
-            <div class="inline-fields">
-                <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
-                <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
-            </div>
-            <input type="tel" id="dataNascimento" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'agente')" onchange="calcularIdade('agente')">
-            <input type="text" id="idade" placeholder="Idade" readonly>
-
-            <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
-            <div id="contador">0 / 5000</div>
-
-            <div class="demand-group">
-                <h3>Demandas:</h3>
-                <div class="demand-items-container"> 
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaBanho" name="demandas" value="Banho">
-                        <label for="demandaBanho">Banho</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaAssistenteSocial" name="demandas" value="Assistente Social">
-                        <label for="demandaAssistenteSocial">Assistente Social</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaPsicologo" name="demandas" value="Psicólogo">
-                        <label for="demandaPsicologo">Psicólogo</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaEncaminhamento" name="demandas" value="Encaminhamento">
-                        <label for="demandaEncaminhamento">Encaminhamento</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaAcolhimento" name="demandas" value="Acolhimento">
-                        <label for="demandaAcolhimento">Acolhimento</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaDuvidas" name="demandas" value="Dúvidas">
-                        <label for="demandaDuvidas">Dúvidas</label> 
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaInformacoes" name="demandas" value="Informações">
-                        <label for="demandaInformacoes">Informações</label> 
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaCorteCabelo" name="demandas" value="Corte de cabelo">
-                        <label for="demandaCabelo">Corte de cabelo</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaOutros" name="demandas" value="Outros">
-                        <label for="demandaOutros">Outros</label>
-                    </div>
-                </div> 
-                <div id="outrosDemandaContainer" style="display:none;">
-                    <input type="text" id="outrosDemandaInput" placeholder="Especifique outras demandas">
-                </div>
+            <div id="loginForm">
+                <h3>Entrar</h3>
+                <input type="email" id="loginEmail" placeholder="E-mail" required>
+                <input type="password" id="loginPassword" placeholder="Senha" required>
+                <button id="loginBtn" class="auth-button">Entrar</button>
+                <p class="auth-switch">Não tem uma conta? <a href="#" onclick="showRegisterForm()">Registre-se</a></p>
+                <p class="auth-switch"><a href="#" onclick="showResetPassword()">Esqueceu a senha?</a></p>
             </div>
 
-            <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
-            <div class="camera-controls">
-                <button id="captureBtn" style="display:none;" onclick="capturarImagem('agente')">Capturar Imagem</button>
-                <button id="stopCameraBtn" style="display:none;" onclick="pararCamera('agente')">Fechar Câmera</button>
+            <div id="registerForm" style="display: none;">
+                <h3>Registrar</h3>
+                <input type="email" id="registerEmail" placeholder="E-mail" required>
+                <input type="password" id="registerPassword" placeholder="Senha" required>
+                <input type="password" id="confirmPassword" placeholder="Confirmar Senha" required>
+                <button id="registerBtn" class="auth-button">Registrar</button>
+                <p class="auth-switch">Já tem uma conta? <a href="#" onclick="showLoginForm()">Entrar</a></p>
             </div>
-            <div id="fotosPreview"></div>
 
-            <p id="gps"></p>
+            <div id="resetPasswordForm" style="display: none;">
+                <h3>Redefinir Senha</h3>
+                <input type="email" id="resetEmail" placeholder="E-mail para redefinição" required>
+                <button id="resetPasswordBtn" class="auth-button">Redefinir Senha</button>
+                <p class="auth-switch"><a href="#" onclick="showLoginForm()">Voltar para Login</a></p>
+            </div>
         </div>
     </div>
+    
+    <div id="mainAppContent" style="display: none;">
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('agenteCampo')">Agente de Campo</button>
+            <button class="tab-button" onclick="showTab('tecnico')">Técnico</button>
+        </div>
 
-    <div id="tecnico" class="tab-content">
-        <div class="container" id="appContainerTecnico">
-            <h2>Cadastro de Usuário</h2>
-            <div id="codigoDisplayTecnico"></div> <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável">
-            <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*">
+        <div id="agenteCampo" class="tab-content active">
+            <div class="container" id="appContainerAgente">
+                <h2>Cadastro de Usuário</h2>
+                <div id="codigoDisplay"></div>
+                <input type="text" id="nomeAgente" placeholder="Nome do Agente Responsável">
+                <input type="tel" id="telefoneAgente" placeholder="Telefone do Agente Responsável" inputmode="numeric" pattern="[0-9]*">
 
-            <input type="text" id="nome_tecnico" placeholder="Nome do Usuário">
-            <input type="text" id="identidade_tecnico" placeholder="Identidade">
-            <input type="tel" id="cpf_tecnico" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this, 'tecnico')">
+                <input type="text" id="nome" placeholder="Nome do Usuário">
+                <input type="text" id="identidade" placeholder="Identidade">
+                <input type="tel" id="cpf" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this, 'agente')">
 
-            <input type="text" id="endereco_tecnico" placeholder="Endereço (coletado automaticamente)" readonly>
-            <div class="inline-fields">
-                <input type="text" id="numero_tecnico" placeholder="Número" oninput="atualizarEnderecoCompleto('tecnico')">
-                <input type="text" id="complemento_tecnico" placeholder="Complemento" oninput="atualizarEnderecoCompleto('tecnico')">
-            </div>
-            <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'tecnico')" onchange="calcularIdade('tecnico')">
-            <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
-
-            <select id="cadUnico_tecnico" required>
-                <option value="">Possui CAD Único?</option>
-                <option value="Sim">Sim</option>
-                <option value="Não">Não</option>
-            </select>
-
-            <select id="bolsaFamilia_tecnico" required>
-                <option value="">Possui Bolsa-Família?</option>
-                <option value="Sim">Sim</option>
-                <option value="Não">Não</option>
-            </select>
-
-            <select id="centroRecuperacao_tecnico" required>
-                <option value="">Já passou por centro de recuperação?</option>
-                <option value="Sim">Sim</option>
-                <option value="Não">Não</option>
-            </select>
-
-            <textarea id="historico_tecnico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('tecnico')"></textarea>
-            <div id="contadorTecnico">0 / 5000</div>
-
-            <textarea id="relatorioEncaminhamento_tecnico" placeholder="Relatório de Encaminhamento (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('relatorioEncaminhamento')"></textarea>
-            <div id="contadorRelatorioEncaminhamento">0 / 5000</div>
-
-            <div class="demand-group">
-                <h3>Demandas:</h3>
-                <div class="demand-items-container"> 
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho" onchange="checkDemandasTecnico()">
-                        <label for="demandaBanho_tecnico">Banho</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social" onchange="checkDemandasTecnico()">
-                        <label for="demandaAssistenteSocial_tecnico">Assistente Social</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo" onchange="checkDemandasTecnico()">
-                        <label for="demandaPsicologo_tecnico">Psicólogo</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento" onchange="checkDemandasTecnico()">
-                        <label for="demandaEncaminhamento_tecnico">Encaminhamento</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento" onchange="checkDemandasTecnico()">
-                        <label for="demandaAcolhimento_tecnico">Acolhimento</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas" onchange="checkDemandasTecnico()">
-                        <label for="demandaDuvidas_tecnico">Dúvidas</label> 
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações" onchange="checkDemandasTecnico()">
-                        <label for="demandaInformacoes_tecnico">Informações</label> 
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo" onchange="checkDemandasTecnico()">
-                        <label for="demandaCabelo_tecnico">Corte de cabelo</label>
-                    </div>
-                    <div class="demand-item">
-                        <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros" onchange="checkDemandasTecnico()">
-                        <label for="demandaOutros_tecnico">Outros</label>
-                    </div>
-                </div> 
-                <div id="outrosDemandaContainerTecnico" style="display:none;">
-                    <input type="text" id="outrosDemandaInputTecnico" placeholder="Especifique outras demandas">
+                <input type="text" id="endereco" placeholder="Endereço (coletado automaticamente)" readonly>
+                <div class="inline-fields">
+                    <input type="text" id="numero" placeholder="Número" oninput="atualizarEnderecoCompleto()">
+                    <input type="text" id="complemento" placeholder="Complemento" oninput="atualizarEnderecoCompleto()">
                 </div>
+                <input type="tel" id="dataNascimento" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'agente')" onchange="calcularIdade('agente')">
+                <input type="text" id="idade" placeholder="Idade" readonly>
+
+                <textarea id="historico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador()"></textarea>
+                <div id="contador">0 / 5000</div>
+
+                <div class="demand-group">
+                    <h3>Demandas:</h3>
+                    <div class="demand-items-container"> 
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaBanho" name="demandas" value="Banho">
+                            <label for="demandaBanho">Banho</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaAssistenteSocial" name="demandas" value="Assistente Social">
+                            <label for="demandaAssistenteSocial">Assistente Social</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaPsicologo" name="demandas" value="Psicólogo">
+                            <label for="demandaPsicologo">Psicólogo</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaEncaminhamento" name="demandas" value="Encaminhamento">
+                            <label for="demandaEncaminhamento">Encaminhamento</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaAcolhimento" name="demandas" value="Acolhimento">
+                            <label for="demandaAcolhimento">Acolhimento</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaDuvidas" name="demandas" value="Dúvidas">
+                            <label for="demandaDuvidas">Dúvidas</label> 
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaInformacoes" name="demandas" value="Informações">
+                            <label for="demandaInformacoes">Informações</label> 
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaCorteCabelo" name="demandas" value="Corte de cabelo">
+                            <label for="demandaCabelo">Corte de cabelo</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaOutros" name="demandas" value="Outros">
+                            <label for="demandaOutros">Outros</label>
+                        </div>
+                    </div> 
+                    <div id="outrosDemandaContainer" style="display:none;">
+                        <input type="text" id="outrosDemandaInput" placeholder="Especifique outras demandas">
+                    </div>
+                </div>
+
+                <video id="video" width="100%" autoplay style="display:none;" playsinline></video>
+                <div class="camera-controls">
+                    <button id="captureBtn" style="display:none;" onclick="capturarImagem('agente')">Capturar Imagem</button>
+                    <button id="stopCameraBtn" style="display:none;" onclick="pararCamera('agente')">Fechar Câmera</button>
+                </div>
+                <div id="fotosPreview"></div>
+                <p id="gps"></p>
             </div>
+        </div>
 
-            <div class="demand-item" style="margin-top: 20px;">
-                <input type="checkbox" id="atendimentoPsicossocial_tecnico" name="atendimentoPsicossocial_tecnico">
-                <label for="atendimentoPsicossocial_tecnico">Atendimento Psicossocial</label>
+        <div id="tecnico" class="tab-content">
+            <div class="container" id="appContainerTecnico">
+                <h2>Cadastro de Usuário</h2>
+                <div id="codigoDisplayTecnico"></div>
+                <input type="text" id="nomeTecnico" placeholder="Nome do Técnico Responsável">
+                <input type="tel" id="telefoneTecnico" placeholder="Telefone do Técnico Responsável" inputmode="numeric" pattern="[0-9]*">
+
+                <input type="text" id="nome_tecnico" placeholder="Nome do Usuário">
+                <input type="text" id="identidade_tecnico" placeholder="Identidade">
+                <input type="tel" id="cpf_tecnico" placeholder="CPF (somente números)" inputmode="numeric" pattern="[0-9]*" oninput="formatarCPF(this, 'tecnico')">
+
+                <input type="text" id="endereco_tecnico" placeholder="Endereço (coletado automaticamente)" readonly>
+                <div class="inline-fields">
+                    <input type="text" id="numero_tecnico" placeholder="Número" oninput="atualizarEnderecoCompleto('tecnico')">
+                    <input type="text" id="complemento_tecnico" placeholder="Complemento" oninput="atualizarEnderecoCompleto('tecnico')">
+                </div>
+                <input type="tel" id="dataNascimento_tecnico" placeholder="DD/MM/AAAA" inputmode="numeric" pattern="[0-9/]*" oninput="formatarDataNascimento(this, 'tecnico')" onchange="calcularIdade('tecnico')">
+                <input type="text" id="idade_tecnico" placeholder="Idade" readonly>
+
+                <select id="cadUnico_tecnico" required>
+                    <option value="">Possui CAD Único?</option>
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                </select>
+
+                <select id="bolsaFamilia_tecnico" required>
+                    <option value="">Possui Bolsa-Família?</option>
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                </select>
+
+                <select id="centroRecuperacao_tecnico" required>
+                    <option value="">Já passou por centro de recuperação?</option>
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                </select>
+
+                <textarea id="historico_tecnico" placeholder="Histórico do Usuário (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('tecnico')"></textarea>
+                <div id="contadorTecnico">0 / 5000</div>
+
+                <textarea id="relatorioEncaminhamento_tecnico" placeholder="Relatório de Encaminhamento (até 5000 caracteres)" maxlength="5000" rows="6" oninput="atualizarContador('relatorioEncaminhamento')"></textarea>
+                <div id="contadorRelatorioEncaminhamento">0 / 5000</div>
+
+                <div class="demand-group">
+                    <h3>Demandas:</h3>
+                    <div class="demand-items-container"> 
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaBanho_tecnico" name="demandas_tecnico" value="Banho" onchange="checkDemandasTecnico()">
+                            <label for="demandaBanho_tecnico">Banho</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaAssistenteSocial_tecnico" name="demandas_tecnico" value="Assistente Social" onchange="checkDemandasTecnico()">
+                            <label for="demandaAssistenteSocial_tecnico">Assistente Social</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaPsicologo_tecnico" name="demandas_tecnico" value="Psicólogo" onchange="checkDemandasTecnico()">
+                            <label for="demandaPsicologo_tecnico">Psicólogo</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaEncaminhamento_tecnico" name="demandas_tecnico" value="Encaminhamento" onchange="checkDemandasTecnico()">
+                            <label for="demandaEncaminhamento_tecnico">Encaminhamento</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaAcolhimento_tecnico" name="demandas_tecnico" value="Acolhimento" onchange="checkDemandasTecnico()">
+                            <label for="demandaAcolhimento_tecnico">Acolhimento</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaDuvidas_tecnico" name="demandas_tecnico" value="Dúvidas" onchange="checkDemandasTecnico()">
+                            <label for="demandaDuvidas_tecnico">Dúvidas</label> 
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaInformacoes_tecnico" name="demandas_tecnico" value="Informações" onchange="checkDemandasTecnico()">
+                            <label for="demandaInformacoes_tecnico">Informações</label> 
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaCorteCabelo_tecnico" name="demandas_tecnico" value="Corte de cabelo" onchange="checkDemandasTecnico()">
+                            <label for="demandaCabelo_tecnico">Corte de cabelo</label>
+                        </div>
+                        <div class="demand-item">
+                            <input type="checkbox" id="demandaOutros_tecnico" name="demandas_tecnico" value="Outros" onchange="checkDemandasTecnico()">
+                            <label for="demandaOutros_tecnico">Outros</label>
+                        </div>
+                    </div> 
+                    <div id="outrosDemandaContainerTecnico" style="display:none;">
+                        <input type="text" id="outrosDemandaInputTecnico" placeholder="Especifique outras demandas">
+                    </div>
+                </div>
+
+                <div class="demand-item" style="margin-top: 20px;">
+                    <input type="checkbox" id="atendimentoPsicossocial_tecnico" name="atendimentoPsicossocial_tecnico">
+                    <label for="atendimentoPsicossocial_tecnico">Atendimento Psicossocial</label>
+                </div>
+
+                <div id="fotosPreviewTecnico"></div>
+
+                <p id="gpsTecnico"></p>
             </div>
-
-            <div id="fotosPreviewTecnico"></div>
-
-            <p id="gpsTecnico"></p>
         </div>
     </div>
 
@@ -638,6 +716,10 @@
          <button id="btnEnviarWhatsApp" onclick="enviarWhatsApp()">
             <i class="fab fa-whatsapp"></i>
             <span>WhatsApp</span>
+        </button>
+        <button id="logoutBtn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Sair</span>
         </button>
     </div>
 
@@ -699,7 +781,6 @@
 
         let activeTab = 'agenteCampo'; // Controla qual aba está ativa
         let cameraStream = null; // Stream da câmera principal
-
         const addCustomFont = (doc) => {
             doc.addFont('helvetica', 'normal', 'normal');
         };
@@ -731,7 +812,6 @@
                 if (idBase === 'outrosDemandaInput') return document.getElementById('outrosDemandaInputTecnico');
                 if (idBase === 'fotosPreview') return document.getElementById('fotosPreviewTecnico');
                 if (idBase === 'gps') return document.getElementById('gpsTecnico');
-
                 // Novos campos da aba técnico
                 if (idBase === 'cadUnico') return document.getElementById('cadUnico_tecnico');
                 if (idBase === 'bolsaFamilia') return document.getElementById('bolsaFamilia_tecnico');
@@ -739,44 +819,37 @@
                 if (idBase === 'relatorioEncaminhamento') return document.getElementById('relatorioEncaminhamento_tecnico'); // NOVO
                 if (idBase === 'contadorRelatorioEncaminhamento') return document.getElementById('contadorRelatorioEncaminhamento'); // NOVO
                 if (idBase === 'atendimentoPsicossocial') return document.getElementById('atendimentoPsicossocial_tecnico'); // NOVO
-                
                 // Campos de camera são compartilhados no HTML
-                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn') { // cameraMessage removido
+                if (idBase === 'video' || idBase === 'captureBtn' || idBase === 'stopCameraBtn') {
                     return document.getElementById(idBase);
                 }
-                
                 // Para checkboxes, o 'name' é diferente
                 if (idBase === 'demandas') {
                     return document.querySelectorAll(`input[name="demandas_tecnico"]`);
-                } else if (forElement) { // Default para outros elementos
+                } else if (forElement) {
+                    // Default para outros elementos
                     return document.getElementById(`${idBase}_tecnico`);
                 }
                 return null;
             }
         }
 
-
         function showTab(tabId) {
             const tabs = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => {
                 tab.classList.remove('active');
             });
-
             const buttons = document.querySelectorAll('.tab-button');
             buttons.forEach(button => {
                 button.classList.remove('active');
             });
-
             document.getElementById(tabId).classList.add('active');
             document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
             activeTab = tabId; // Atualiza a aba ativa
-
             // Re-renderizar o código de atendimento e habilitar/desabilitar o botão do WhatsApp
             const activeData = getActiveData();
             gerarCodigoAtendimento(); // Gera um novo código para a aba ativa (ou exibe o existente)
-            document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri;
-            
-            // Para parar a câmera se o usuário mudar de aba com a câmera aberta
+            document.getElementById('btnEnviarWhatsApp').disabled = !activeData.pdfDataUri; // Para parar a câmera se o usuário mudar de aba com a câmera aberta
             pararCamera('global');
         }
 
@@ -797,9 +870,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            gerarCodigoAtendimento();
-
-            // Listeners para a aba Agente de Campo
+            gerarCodigoAtendimento(); // Listeners para a aba Agente de Campo
             getElementByIdForActiveTab('demandaOutros').addEventListener('change', function() {
                 const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer');
                 outrosContainer.style.display = this.checked ? 'block' : 'none';
@@ -810,7 +881,6 @@
             getElementByIdForActiveTab('telefoneAgente').addEventListener('input', function (e) {
                 e.target.value = e.target.value.replace(/\D/g, '');
             });
-
             // Listeners para a aba Técnico
             getElementByIdForActiveTab('demandaOutros', false).addEventListener('change', function() {
                 const outrosContainer = getElementByIdForActiveTab('outrosDemandaContainer', false);
@@ -820,7 +890,6 @@
                 }
                 checkDemandasTecnico(); // Chama para verificar a necessidade do Relatório de Encaminhamento
             });
-
             // Adiciona um listener para todos os checkboxes de demanda do técnico
             document.querySelectorAll('input[name="demandas_tecnico"]').forEach(checkbox => {
                 checkbox.addEventListener('change', checkDemandasTecnico);
@@ -828,25 +897,41 @@
             getElementByIdForActiveTab('telefoneAgente', false).addEventListener('input', function (e) { // Para aba tecnico
                 e.target.value = e.target.value.replace(/\D/g, '');
             });
-
             // Adiciona listener para desabilitar campos do agente após o primeiro input
             getElementByIdForActiveTab('nomeAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
             getElementByIdForActiveTab('telefoneAgente').addEventListener('blur', () => checkAndDisableAgentFields('agenteCampo'));
             getElementByIdForActiveTab('nomeAgente', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
             getElementByIdForActiveTab('telefoneTecnico', false).addEventListener('blur', () => checkAndDisableAgentFields('tecnico'));
-
             // Inicia o botão do WhatsApp desabilitado
             document.getElementById('btnEnviarWhatsApp').disabled = true;
-
             // Exibir a primeira aba por padrão
             showTab('agenteCampo');
+            
+            // --- CÓDIGO DE AUTENTICAÇÃO ---
+            const authScreen = document.getElementById('authScreen');
+            const mainAppContent = document.getElementById('mainAppContent');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const resetPasswordForm = document.getElementById('resetPasswordForm');
+            const authMessage = document.getElementById('authMessage');
+
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    authScreen.style.display = 'none';
+                    mainAppContent.style.display = 'block';
+                    console.log("Usuário logado:", user.email);
+                } else {
+                    authScreen.style.display = 'block';
+                    mainAppContent.style.display = 'none';
+                    console.log("Usuário deslogado.");
+                }
+            });
         });
 
         function checkAndDisableAgentFields(tabId) {
             const currentData = tabId === 'agenteCampo' ? dadosAgenteCampo : dadosTecnico;
             const nomeInput = document.getElementById(tabId === 'agenteCampo' ? 'nomeAgente' : 'nomeTecnico');
             const telefoneInput = document.getElementById(tabId === 'agenteCampo' ? 'telefoneAgente' : 'telefoneTecnico');
-
             if (nomeInput.value.trim() !== '' && telefoneInput.value.trim() !== '' && !currentData.agenteDadosPreenchidos) {
                 nomeInput.disabled = true;
                 telefoneInput.disabled = true;
@@ -870,7 +955,6 @@
                 formattedValue += '-' + value.substring(9, 11);
             }
             input.value = formattedValue;
-            // Pula para o próximo campo após preencher 11 dígitos
             if (value.length === 11) {
                 const nextField = tabContext === 'agente' ? document.getElementById('dataNascimento') : document.getElementById('dataNascimento_tecnico');
                 if (nextField) {
@@ -892,13 +976,11 @@
                 formattedValue += '/' + value.substring(4, 8);
             }
             input.value = formattedValue;
-            // Pula para o próximo campo após preencher 8 dígitos (DD/MM/AAAA)
             if (value.length === 8) {
                 let nextField;
                 if (tabContext === 'agente') {
                     nextField = document.getElementById('historico');
-                } else {
-                    // aba tecnico
+                } else { // aba tecnico
                     nextField = document.getElementById('cadUnico_tecnico'); // Novo foco
                 }
                 if (nextField) {
@@ -910,186 +992,31 @@
         function calcularIdade(tabContext = 'agente') {
             const dataNascimentoInput = tabContext === 'agente' ? getElementByIdForActiveTab('dataNascimento') : getElementByIdForActiveTab('dataNascimento', false);
             const idadeInput = tabContext === 'agente' ? getElementByIdForActiveTab('idade') : getElementByIdForActiveTab('idade', false);
-
             const nascimentoStr = dataNascimentoInput.value;
             if (!nascimentoStr || nascimentoStr.length !== 10 || !nascimentoStr.includes('/')) {
                 idadeInput.value = '';
                 return;
             }
-
             const partes = nascimentoStr.split('/');
             if (partes.length !== 3) {
                 idadeInput.value = '';
                 return;
             }
-
             const nascFormatado = `${partes[2]}-${partes[1]}-${partes[0]}`;
             const nasc = new Date(nascFormatado);
-
             if (isNaN(nasc.getTime())) {
                 idadeInput.value = '';
                 return;
             }
-
             const hoje = new Date();
             let anos = hoje.getFullYear() - nasc.getFullYear();
             let meses = hoje.getMonth() - nasc.getMonth();
-            let dias = hoje.getDate() - nasc.getDate();
-
-            if (dias < 0) {
-                meses--;
-                dias += new Date(hoje.getFullYear(), hoje.getMonth(), 0).getDate();
-            }
-
-            if (meses < 0) {
+            if (meses < 0 || (meses === 0 && hoje.getDate() < nasc.getDate())) {
                 anos--;
-                meses += 12;
             }
-
-            let idadeTexto = `${anos} anos`;
-            if (meses > 0) idadeTexto += `, ${meses} meses`;
-            if (dias > 0) idadeTexto += `, ${dias} dias`;
-
-            idadeInput.value = idadeTexto;
+            idadeInput.value = anos >= 0 ? `${anos} anos` : '';
         }
 
-        function atualizarContador(fieldContext = 'historico') {
-            let inputElement;
-            let counterElement;
-            if (fieldContext === 'agente') {
-                inputElement = getElementByIdForActiveTab('historico');
-                counterElement = getElementByIdForActiveTab('contador');
-            } else if (fieldContext === 'tecnico') {
-                inputElement = getElementByIdForActiveTab('historico', false);
-                counterElement = getElementByIdForActiveTab('contador', false);
-            } else if (fieldContext === 'relatorioEncaminhamento') {
-                // NOVO CONTEXTO
-                inputElement = getElementByIdForActiveTab('relatorioEncaminhamento', false);
-                counterElement = getElementByIdForActiveTab('contadorRelatorioEncaminhamento', false);
-            }
-            if (inputElement && counterElement) {
-                const currentLength = inputElement.value.length;
-                const maxLength = inputElement.maxLength;
-                counterElement.innerText = `${currentLength} / ${maxLength}`;
-            }
-        }
-
-        // NOVO: Função para verificar se o Relatório de Encaminhamento deve ser preenchido
-        function checkDemandasTecnico() {
-            const checkboxes = document.querySelectorAll('input[name="demandas_tecnico"]');
-            const relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false);
-            let anyChecked = false;
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    anyChecked = true;
-                }
-            });
-            // O campo não fica disabled, mas a validação ocorrerá ao gerar o PDF
-            // relatorioEncaminhamento.required = anyChecked; // Descomente se quiser usar o 'required' do HTML
-            // Opcionalmente, pode-se adicionar uma classe para estilizar o campo como obrigatório visualmente
-            if (anyChecked) {
-                relatorioEncaminhamento.classList.add('required-field-visual');
-            } else {
-                relatorioEncaminhamento.classList.remove('required-field-visual');
-            }
-        }
-        
-        // --- Funções para a Câmera Principal (fotos do usuário) ---
-        async function tirarFoto(tabContext = 'global') {
-            const video = document.getElementById('video');
-            const captureBtn = document.getElementById('captureBtn');
-            const stopCameraBtn = document.getElementById('stopCameraBtn');
-            // const cameraMessage = document.getElementById('cameraMessage'); // Removido
-
-            if (cameraStream) {
-                // Se a câmera já está ativa, tira a foto
-                capturarImagem(activeTab);
-            } else {
-                // Inicia a câmera
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                    video.srcObject = stream;
-                    video.style.display = 'block';
-                    captureBtn.style.display = 'block';
-                    stopCameraBtn.style.display = 'block';
-                    // cameraMessage.style.display = 'block'; // Removido
-                    cameraStream = stream;
-                } catch (err) {
-                    console.error("Erro ao acessar a câmera: ", err);
-                    alert("Não foi possível acessar a câmera. Verifique as permissões.");
-                }
-            }
-        }
-
-        function capturarImagem(tabContext) {
-            const activeData = getActiveData();
-            const video = document.getElementById('video');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const fotoData = canvas.toDataURL('image/jpeg', 0.8); // Qualidade da imagem
-            activeData.fotos.push(fotoData);
-
-            // Adiciona a miniatura na visualização
-            const previewContainer = getElementByIdForActiveTab('fotosPreview');
-            const fotoContainer = document.createElement('div');
-            fotoContainer.className = 'foto-container';
-
-            const img = document.createElement('img');
-            img.src = fotoData;
-            img.className = 'foto-thumb';
-            fotoContainer.appendChild(img);
-
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-btn';
-            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-            removeBtn.onclick = () => removerFoto(fotoContainer, fotoData, activeTab);
-            fotoContainer.appendChild(removeBtn);
-
-            previewContainer.appendChild(fotoContainer);
-            
-            // Para feedback visual
-            const flash = document.createElement('div');
-            flash.style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: white; opacity: 1; transition: opacity 0.1s;';
-            document.body.appendChild(flash);
-            setTimeout(() => {
-                flash.style.opacity = '0';
-                setTimeout(() => {
-                    document.body.removeChild(flash);
-                }, 100);
-            }, 50);
-        }
-
-        function removerFoto(fotoElement, fotoData, tabContext) {
-            const activeData = getActiveData();
-            const index = activeData.fotos.indexOf(fotoData);
-            if (index > -1) {
-                activeData.fotos.splice(index, 1);
-            }
-            fotoElement.remove();
-        }
-
-        function pararCamera(tabContext) {
-            const video = document.getElementById('video');
-            const captureBtn = document.getElementById('captureBtn');
-            const stopCameraBtn = document.getElementById('stopCameraBtn');
-            // const cameraMessage = document.getElementById('cameraMessage'); // Removido
-            
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-                cameraStream = null;
-                video.style.display = 'none';
-                captureBtn.style.display = 'none';
-                stopCameraBtn.style.display = 'none';
-                // cameraMessage.style.display = 'none'; // Removido
-            }
-        }
-
-        // --- Funções para Coletar GPS e Endereço ---
         function coletarGPS() {
             if ("geolocation" in navigator) {
                 getElementByIdForActiveTab('gps').innerText = "Coletando localização...";
@@ -1100,9 +1027,6 @@
                         const lon = position.coords.longitude;
                         activeData.coordenadas = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
                         getElementByIdForActiveTab('gps').innerText = activeData.coordenadas;
-                        
-                        // Busca o endereço com base nas coordenadas
-                        buscarEndereco(lat, lon);
                     },
                     (error) => {
                         console.error("Erro ao obter a localização: ", error);
@@ -1114,383 +1038,535 @@
             }
         }
 
-        function buscarEndereco(lat, lon) {
-            const activeData = getActiveData();
-            // Usando a API de geocodificação reversa do Google Maps
-            const apiKey = 'SUA_CHAVE_DE_API_DO_GOOGLE'; // Substitua pela sua chave de API
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}`;
-
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.results && data.results.length > 0) {
-                        const enderecoCompleto = data.results[0].formatted_address;
-                        getElementByIdForActiveTab('endereco').value = enderecoCompleto;
-                        activeData.enderecoBaseDetalhes = extrairComponentesDoEndereco(data.results[0].address_components);
-                        // Chama a atualização para garantir que o endereço completo seja exibido
-                        atualizarEnderecoCompleto();
-                    } else {
-                        getElementByIdForActiveTab('endereco').value = "Endereço não encontrado.";
-                    }
-                })
-                .catch(error => {
-                    console.error("Erro ao buscar endereço: ", error);
-                    getElementByIdForActiveTab('endereco').value = "Erro ao buscar endereço.";
-                });
-        }
-        
-        function extrairComponentesDoEndereco(components) {
-            const detalhes = {};
-            components.forEach(component => {
-                if (component.types.includes('route')) {
-                    detalhes.rua = component.long_name;
-                } else if (component.types.includes('political')) {
-                    detalhes.cidade = component.long_name;
-                } else if (component.types.includes('administrative_area_level_2')) {
-                    detalhes.bairro = component.long_name;
-                } else if (component.types.includes('postal_code')) {
-                    detalhes.cep = component.long_name;
-                } else if (component.types.includes('country')) {
-                    detalhes.pais = component.long_name;
-                }
-            });
-            return detalhes;
-        }
-
-        function atualizarEnderecoCompleto(tabContext = '') {
-            const activeData = getActiveData();
-            const numero = getElementByIdForActiveTab('numero', tabContext === '').value;
-            const complemento = getElementByIdForActiveTab('complemento', tabContext === '').value;
+        function tirarFoto(origem) {
+            const videoElement = getElementByIdForActiveTab('video');
+            const captureBtn = getElementByIdForActiveTab('captureBtn');
+            const stopCameraBtn = getElementByIdForActiveTab('stopCameraBtn');
             
-            let novoEndereco = getElementByIdForActiveTab('endereco', tabContext === '').value;
-
-            // Se o campo de endereço automático já foi preenchido, apenas ajusta
-            if (activeData.enderecoBaseDetalhes.rua) {
-                let enderecoManual = '';
-                if (numero) enderecoManual += `, Nº ${numero}`;
-                if (complemento) enderecoManual += `, Complemento: ${complemento}`;
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                videoElement.style.display = 'block';
+                captureBtn.style.display = 'block';
+                stopCameraBtn.style.display = 'block';
                 
-                novoEndereco = `${activeData.enderecoBaseDetalhes.rua}, ${activeData.enderecoBaseDetalhes.bairro}, ${activeData.enderecoBaseDetalhes.cidade}${enderecoManual}`;
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(function(stream) {
+                    cameraStream = stream;
+                    videoElement.srcObject = stream;
+                })
+                .catch(function(err) {
+                    console.error("Erro ao acessar a câmera: " + err);
+                    alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
+                });
+            } else {
+                alert("A API da câmera não é suportada neste navegador.");
             }
-
-            getElementByIdForActiveTab('endereco', tabContext === '').value = novoEndereco;
         }
 
-        // --- Gerar PDF e salvar no Firestore ---
+        function capturarImagem(tabContext) {
+            const videoElement = getElementByIdForActiveTab('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const dataUri = canvas.toDataURL('image/jpeg');
+            const activeData = getActiveData();
+            activeData.fotos.push(dataUri);
+            renderizarFotos(tabContext);
+        }
+
+        function pararCamera(tabContext) {
+            const videoElement = getElementByIdForActiveTab('video');
+            const captureBtn = getElementByIdForActiveTab('captureBtn');
+            const stopCameraBtn = getElementByIdForActiveTab('stopCameraBtn');
+            
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                videoElement.style.display = 'none';
+                captureBtn.style.display = 'none';
+                stopCameraBtn.style.display = 'none';
+                videoElement.srcObject = null;
+                cameraStream = null;
+            }
+        }
+
+        function renderizarFotos(tabContext) {
+            const activeData = getActiveData();
+            const fotosPreview = getElementByIdForActiveTab('fotosPreview');
+            fotosPreview.innerHTML = '';
+            activeData.fotos.forEach((dataUri, index) => {
+                const container = document.createElement('div');
+                container.className = 'foto-container';
+                const img = document.createElement('img');
+                img.src = dataUri;
+                img.className = 'foto-thumb';
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.onclick = () => {
+                    activeData.fotos.splice(index, 1);
+                    renderizarFotos(tabContext);
+                };
+                container.appendChild(img);
+                container.appendChild(removeBtn);
+                fotosPreview.appendChild(container);
+            });
+        }
+
         async function gerarPDF() {
             const activeData = getActiveData();
+            const tabContext = activeTab;
             
-            // Validação de campos obrigatórios
-            const camposObrigatorios = ['nome', 'nomeAgente', 'telefoneAgente', 'endereco', 'dataNascimento', 'historico'];
-            if (activeTab === 'tecnico') {
-                camposObrigatorios.push('cadUnico', 'bolsaFamilia', 'centroRecuperacao');
-                const demandasTecnicoChecked = document.querySelectorAll('input[name="demandas_tecnico"]:checked').length > 0;
-                const relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false).value.trim();
-                if (demandasTecnicoChecked && !relatorioEncaminhamento) {
-                    alert('Por favor, preencha o Relatório de Encaminhamento, pois uma ou mais demandas foram selecionadas.');
-                    return;
-                }
-            }
+            // Reúne todos os dados da aba ativa
+            activeData.nomeAgente = getElementByIdForActiveTab('nomeAgente').value;
+            activeData.telefoneAgente = getElementByIdForActiveTab('telefoneAgente').value;
+            activeData.nomeUsuario = getElementByIdForActiveTab('nome').value;
+            activeData.identidade = getElementByIdForActiveTab('identidade').value;
+            activeData.cpf = getElementByIdForActiveTab('cpf').value;
+            activeData.endereco = getElementByIdForActiveTab('endereco').value;
+            activeData.numero = getElementByIdForActiveTab('numero').value;
+            activeData.complemento = getElementByIdForActiveTab('complemento').value;
+            activeData.dataNascimento = getElementByIdForActiveTab('dataNascimento').value;
+            activeData.idade = getElementByIdForActiveTab('idade').value;
+            activeData.historico = getElementByIdForActiveTab('historico').value;
             
-            let formValido = true;
-            for (const campo of camposObrigatorios) {
-                const elemento = getElementByIdForActiveTab(campo);
-                if (elemento && elemento.value.trim() === '') {
-                    formValido = false;
-                    elemento.style.border = '2px solid var(--red-color)';
-                    setTimeout(() => elemento.style.border = '1px solid var(--border-color)', 2000);
-                } else if (elemento) {
-                    elemento.style.border = '1px solid var(--border-color)';
-                }
+            if (tabContext === 'tecnico') {
+                activeData.cadUnico = getElementByIdForActiveTab('cadUnico', false).value;
+                activeData.bolsaFamilia = getElementByIdForActiveTab('bolsaFamilia', false).value;
+                activeData.centroRecuperacao = getElementByIdForActiveTab('centroRecuperacao', false).value;
+                activeData.historico = getElementByIdForActiveTab('historico', false).value;
+                activeData.relatorioEncaminhamento = getElementByIdForActiveTab('relatorioEncaminhamento', false).value;
+                activeData.atendimentoPsicossocial = getElementByIdForActiveTab('atendimentoPsicossocial', false).checked;
             }
 
-            if (!formValido) {
-                alert('Por favor, preencha todos os campos obrigatórios.');
+            // Coleta as demandas marcadas
+            activeData.demandas = [];
+            const checkboxes = document.querySelectorAll(`input[name="demandas${tabContext === 'tecnico' ? '_tecnico' : ''}"]:checked`);
+            checkboxes.forEach(checkbox => {
+                if (checkbox.id.includes('Outros')) {
+                    const outrosInput = getElementByIdForActiveTab('outrosDemandaInput', tabContext === 'agenteCampo');
+                    if (outrosInput.value) {
+                         activeData.demandas.push(`Outros: ${outrosInput.value}`);
+                    } else {
+                        // Se 'outros' foi marcado, mas o campo de texto está vazio,
+                        // podemos simplesmente ignorar ou adicionar 'Outros' sem especificação.
+                        activeData.demandas.push('Outros');
+                    }
+                } else {
+                    activeData.demandas.push(checkbox.value);
+                }
+            });
+            if (tabContext === 'tecnico' && activeData.atendimentoPsicossocial) {
+                activeData.demandas.push('Atendimento Psicossocial');
+            }
+            
+            // Validações básicas
+            if (!activeData.nomeUsuario || !activeData.nomeAgente || activeData.fotos.length === 0) {
+                alert("Por favor, preencha o nome do usuário e do agente, e tire pelo menos uma foto.");
                 return;
             }
 
-            // Selecionar demandas
-            const demandasSelecionadas = [];
-            const demandaCheckboxes = document.querySelectorAll(`input[name="demandas${activeTab === 'tecnico' ? '_tecnico' : ''}"]:checked`);
-            demandaCheckboxes.forEach(checkbox => {
-                if (checkbox.value === 'Outros' && getElementByIdForActiveTab('outrosDemandaInput', activeTab === 'tecnico').value.trim() !== '') {
-                    demandasSelecionadas.push(`Outros: ${getElementByIdForActiveTab('outrosDemandaInput', activeTab === 'tecnico').value.trim()}`);
-                } else if (checkbox.value !== 'Outros') {
-                    demandasSelecionadas.push(checkbox.value);
-                }
-            });
-
-            // Novo: Salvar os dados no Firestore antes de gerar o PDF
-            const currentTabSuffix = activeTab === 'agenteCampo' ? '' : '_tecnico';
-
-            const dadosParaSalvar = {
-                codigoAtendimento: activeData.codigoAtual,
-                dataHora: firebase.firestore.FieldValue.serverTimestamp(),
-                tipoRelatorio: activeTab === 'agenteCampo' ? 'Agente de Campo' : 'Técnico',
-                agenteResponsavel: getElementByIdForActiveTab('nomeAgente').value,
-                telefoneAgente: getElementByIdForActiveTab('telefoneAgente').value,
-                nomeUsuario: getElementByIdForActiveTab('nome').value,
-                identidade: getElementByIdForActiveTab('identidade').value,
-                cpf: getElementByIdForActiveTab('cpf').value,
-                endereco: getElementByIdForActiveTab('endereco').value,
-                dataNascimento: getElementByIdForActiveTab('dataNascimento').value,
-                idade: getElementByIdForActiveTab('idade').value,
-                historico: getElementByIdForActiveTab('historico').value,
-                demandas: demandasSelecionadas,
-                coordenadas: activeData.coordenadas,
-                cadUnico: activeTab === 'tecnico' ? getElementByIdForActiveTab('cadUnico', false).value : null,
-                bolsaFamilia: activeTab === 'tecnico' ? getElementByIdForActiveTab('bolsaFamilia', false).value : null,
-                centroRecuperacao: activeTab === 'tecnico' ? getElementByIdForActiveTab('centroRecuperacao', false).value : null,
-                relatorioEncaminhamento: activeTab === 'tecnico' ? getElementByIdForActiveTab('relatorioEncaminhamento', false).value : null,
-                atendimentoPsicossocial: activeTab === 'tecnico' ? getElementByIdForActiveTab('atendimentoPsicossocial', false).checked : false,
-            };
-
-            // Salvar fotos no Firebase Storage e obter as URLs
-            const fotoUrls = [];
-            for (let i = 0; i < activeData.fotos.length; i++) {
-                const fotoBase64 = activeData.fotos[i];
-                const storageRef = storage.ref(`relatorios/${activeData.codigoAtual}/foto_${i+1}.jpeg`);
-                await storageRef.putString(fotoBase64, 'data_url');
-                const url = await storageRef.getDownloadURL();
-                fotoUrls.push(url);
-            }
-            dadosParaSalvar.fotoUrls = fotoUrls;
-
-            try {
-                // Salvar o documento na coleção 'relatorios' com o código de atendimento como ID
-                await db.collection("relatorios").doc(activeData.codigoAtual).set(dadosParaSalvar);
-                console.log("Documento salvo com sucesso!");
-            } catch (e) {
-                console.error("Erro ao salvar documento: ", e);
-                alert("Ocorreu um erro ao salvar o relatório no banco de dados. Por favor, tente novamente.");
-                return; // Impede a geração do PDF se o salvamento falhar
-            }
-            
-
-            // Início da geração do PDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
+            const doc = new window.jspdf.jsPDF();
             addCustomFont(doc);
             doc.setFont('helvetica');
 
-            let yPos = 10;
-            doc.setFontSize(16);
-            doc.setTextColor(52, 58, 64);
-            doc.text(`Relatório de Atendimento - ${dadosParaSalvar.tipoRelatorio}`, 105, yPos, null, null, "center");
-            yPos += 10;
-            doc.setFontSize(10);
-            doc.setTextColor(108, 117, 125);
-            doc.text(`Relatório nº: ${activeData.codigoAtual}`, 105, yPos, null, null, "center");
-            doc.text(`Data/Hora: ${new Date().toLocaleString()}`, 105, yPos + 5, null, null, "center");
-            yPos += 15;
+            // Salvar no Firebase antes de gerar o PDF
+            const codigo = gerarCodigoAtendimento();
+            const docRef = db.collection(tabContext).doc(codigo);
 
-            // Dados do Agente/Técnico
-            doc.setFontSize(12);
-            doc.setTextColor(52, 58, 64);
-            doc.text('Dados do Responsável:', 15, yPos);
-            yPos += 7;
-            doc.setFontSize(10);
-            doc.setTextColor(108, 117, 125);
-            doc.text(`Nome: ${dadosParaSalvar.agenteResponsavel}`, 15, yPos);
-            doc.text(`Telefone: ${dadosParaSalvar.telefoneAgente}`, 105, yPos);
-            yPos += 10;
-
-            // Dados do Usuário
-            doc.setFontSize(12);
-            doc.setTextColor(52, 58, 64);
-            doc.text('Dados do Usuário:', 15, yPos);
-            yPos += 7;
-            doc.setFontSize(10);
-            doc.setTextColor(108, 117, 125);
-            doc.text(`Nome: ${dadosParaSalvar.nomeUsuario}`, 15, yPos);
-            yPos += 5;
-            doc.text(`Identidade: ${dadosParaSalvar.identidade}`, 15, yPos);
-            doc.text(`CPF: ${dadosParaSalvar.cpf}`, 105, yPos);
-            yPos += 5;
-            doc.text(`Endereço: ${dadosParaSalvar.endereco}`, 15, yPos);
-            yPos += 5;
-            doc.text(`Data de Nasc.: ${dadosParaSalvar.dataNascimento}`, 15, yPos);
-            doc.text(`Idade: ${dadosParaSalvar.idade}`, 105, yPos);
-            yPos += 10;
+            // Armazenar as fotos no Storage
+            const fotoUrls = [];
+            for (const [index, fotoUri] of activeData.fotos.entries()) {
+                const fotoRef = storage.ref(`${tabContext}/${codigo}/foto_${index + 1}.jpeg`);
+                const snapshot = await fotoRef.putString(fotoUri, 'data_url');
+                const url = await snapshot.ref.getDownloadURL();
+                fotoUrls.push(url);
+            }
             
-            // Dados específicos do Técnico
-            if (activeTab === 'tecnico') {
-                doc.setFontSize(12);
-                doc.setTextColor(52, 58, 64);
-                doc.text('Informações Adicionais:', 15, yPos);
-                yPos += 7;
-                doc.setFontSize(10);
-                doc.setTextColor(108, 117, 125);
-                doc.text(`CAD Único: ${dadosParaSalvar.cadUnico}`, 15, yPos);
-                doc.text(`Bolsa-Família: ${dadosParaSalvar.bolsaFamilia}`, 70, yPos);
-                doc.text(`Centro de Recup.: ${dadosParaSalvar.centroRecuperacao}`, 135, yPos);
-                yPos += 5;
-                doc.text(`Atendimento Psicossocial: ${dadosParaSalvar.atendimentoPsicossocial ? 'Sim' : 'Não'}`, 15, yPos);
-                yPos += 10;
-            }
+            await docRef.set({
+                ...activeData,
+                fotos: fotoUrls, // Salva as URLs públicas no documento
+                timestamp: new Date()
+            }).then(() => {
+                console.log("Documento salvo com sucesso no Firestore!");
+            }).catch((error) => {
+                console.error("Erro ao salvar documento: ", error);
+            });
+            
+            // Geração do PDF
+            const margin = 15;
+            let y = 15;
 
-            // Histórico do Usuário
+            doc.setFontSize(22);
+            doc.setTextColor('#007bff');
+            doc.text(`Relatório de Atendimento nº: ${codigo}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += 10;
+            doc.line(margin, y, doc.internal.pageSize.getWidth() - margin, y);
+            y += 8;
+
             doc.setFontSize(12);
-            doc.setTextColor(52, 58, 64);
-            doc.text('Histórico do Usuário:', 15, yPos);
-            yPos += 7;
-            doc.setFontSize(10);
-            doc.setTextColor(108, 117, 125);
-            const historicoLines = doc.splitTextToSize(dadosParaSalvar.historico, 180);
-            doc.text(historicoLines, 15, yPos);
-            yPos += historicoLines.length * 5 + 5;
+            doc.setTextColor('#343a40');
 
-            // Relatório de Encaminhamento (se for técnico e houver)
-            if (activeTab === 'tecnico' && dadosParaSalvar.relatorioEncaminhamento) {
-                doc.setFontSize(12);
-                doc.setTextColor(52, 58, 64);
-                doc.text('Relatório de Encaminhamento:', 15, yPos);
-                yPos += 7;
-                doc.setFontSize(10);
-                doc.setTextColor(108, 117, 125);
-                const relatorioLines = doc.splitTextToSize(dadosParaSalvar.relatorioEncaminhamento, 180);
-                doc.text(relatorioLines, 15, yPos);
-                yPos += relatorioLines.length * 5 + 5;
-            }
-
-            // Demandas
-            doc.setFontSize(12);
-            doc.setTextColor(52, 58, 64);
-            doc.text('Demandas:', 15, yPos);
-            yPos += 7;
-            doc.setFontSize(10);
-            doc.setTextColor(108, 117, 125);
-            const demandasText = demandasSelecionadas.length > 0 ? demandasSelecionadas.join(', ') : 'Nenhuma demanda selecionada.';
-            const demandasLines = doc.splitTextToSize(demandasText, 180);
-            doc.text(demandasLines, 15, yPos);
-            yPos += demandasLines.length * 5 + 5;
-
-            // Fotos (se houver)
-            if (fotoUrls.length > 0) {
+            doc.text(`Agente Responsável: ${activeData.nomeAgente} (Tel: ${activeData.telefoneAgente})`, margin, y);
+            y += 8;
+            doc.text(`Usuário: ${activeData.nomeUsuario}`, margin, y);
+            y += 8;
+            doc.text(`Identidade: ${activeData.identidade}`, margin, y);
+            y += 8;
+            doc.text(`CPF: ${activeData.cpf}`, margin, y);
+            y += 8;
+            doc.text(`Data de Nascimento: ${activeData.dataNascimento} (${activeData.idade})`, margin, y);
+            y += 8;
+            doc.text(`Coordenadas GPS: ${activeData.coordenadas}`, margin, y);
+            y += 8;
+            
+            // Verificação de quebra de página
+            if (y + 100 > doc.internal.pageSize.getHeight()) {
                 doc.addPage();
-                yPos = 15;
+                y = margin;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor('#007bff');
+            doc.text('Dados de Localização', margin, y);
+            y += 8;
+            doc.setFontSize(12);
+            doc.setTextColor('#343a40');
+            doc.text(`Endereço: ${activeData.endereco} | Nº: ${activeData.numero} | Complemento: ${activeData.complemento}`, margin, y);
+            y += 10;
+
+            if (tabContext === 'tecnico') {
+                if (y + 100 > doc.internal.pageSize.getHeight()) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.setFontSize(14);
+                doc.setTextColor('#007bff');
+                doc.text('Informações Adicionais (Técnico)', margin, y);
+                y += 8;
                 doc.setFontSize(12);
-                doc.setTextColor(52, 58, 64);
-                doc.text('Fotos do Atendimento:', 15, yPos);
-                yPos += 10;
-                
-                const imgWidth = 80;
-                const imgHeight = 60;
-                const margin = 15;
-                const spacing = 10;
-                const imagesPerRow = Math.floor((doc.internal.pageSize.width - 2 * margin) / (imgWidth + spacing));
-                
-                let xPos = margin;
-                let yPosInitial = yPos;
+                doc.setTextColor('#343a40');
+                doc.text(`CAD Único: ${activeData.cadUnico}`, margin, y);
+                y += 8;
+                doc.text(`Bolsa-Família: ${activeData.bolsaFamilia}`, margin, y);
+                y += 8;
+                doc.text(`Passou por centro de recuperação: ${activeData.centroRecuperacao}`, margin, y);
+                y += 8;
 
-                for (let i = 0; i < fotoUrls.length; i++) {
-                    // Adiciona quebra de página se não houver espaço
-                    if (yPos + imgHeight > doc.internal.pageSize.height - margin) {
-                        doc.addPage();
-                        yPos = margin;
-                        yPosInitial = yPos;
-                        xPos = margin;
-                    }
-                    
-                    const img = new Image();
-                    img.src = activeData.fotos[i];
-                    doc.addImage(img, 'JPEG', xPos, yPos, imgWidth, imgHeight);
-
-                    xPos += imgWidth + spacing;
-                    if ((i + 1) % imagesPerRow === 0) {
-                        xPos = margin;
-                        yPos += imgHeight + spacing;
-                    }
+                if (y + 100 > doc.internal.pageSize.getHeight()) {
+                    doc.addPage();
+                    y = margin;
                 }
             }
 
-
-            // Salva o PDF
-            activeData.pdfFileName = `Relatorio_${activeData.codigoAtual}.pdf`;
-            activeData.pdfDataUri = doc.output('datauristring');
+            doc.setFontSize(14);
+            doc.setTextColor('#007bff');
+            doc.text('Histórico do Usuário', margin, y);
+            y += 8;
+            doc.setFontSize(12);
+            doc.setTextColor('#343a40');
+            const splitHistorico = doc.splitTextToSize(activeData.historico, doc.internal.pageSize.getWidth() - 2 * margin);
+            doc.text(splitHistorico, margin, y);
+            y += splitHistorico.length * 7;
             
-            // Habilita o botão do WhatsApp
+            if (tabContext === 'tecnico' && activeData.relatorioEncaminhamento) {
+                if (y + 100 > doc.internal.pageSize.getHeight()) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.setFontSize(14);
+                doc.setTextColor('#007bff');
+                doc.text('Relatório de Encaminhamento', margin, y);
+                y += 8;
+                doc.setFontSize(12);
+                doc.setTextColor('#343a40');
+                const splitRelatorio = doc.splitTextToSize(activeData.relatorioEncaminhamento, doc.internal.pageSize.getWidth() - 2 * margin);
+                doc.text(splitRelatorio, margin, y);
+                y += splitRelatorio.length * 7;
+            }
+
+            if (y + 100 > doc.internal.pageSize.getHeight()) {
+                doc.addPage();
+                y = margin;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor('#007bff');
+            doc.text('Demandas', margin, y);
+            y += 8;
+            doc.setFontSize(12);
+            doc.setTextColor('#343a40');
+            const demandasTexto = activeData.demandas.length > 0 ? activeData.demandas.join(', ') : 'Nenhuma demanda registrada.';
+            const splitDemandas = doc.splitTextToSize(demandasTexto, doc.internal.pageSize.getWidth() - 2 * margin);
+            doc.text(splitDemandas, margin, y);
+            y += splitDemandas.length * 7;
+
+            doc.addPage();
+            y = margin;
+
+            doc.setFontSize(14);
+            doc.setTextColor('#007bff');
+            doc.text('Fotos', margin, y);
+            y += 8;
+
+            for (const fotoUrl of fotoUrls) {
+                if (y + 80 > doc.internal.pageSize.getHeight()) {
+                    doc.addPage();
+                    y = margin;
+                }
+                try {
+                    const imgData = await fetch(fotoUrl).then(res => res.blob()).then(blob => new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    }));
+                    doc.addImage(imgData, 'JPEG', margin, y, 60, 60);
+                    y += 70;
+                } catch (e) {
+                    console.error("Erro ao adicionar imagem ao PDF: ", e);
+                    doc.text("Erro ao carregar a imagem.", margin, y);
+                    y += 10;
+                }
+            }
+
+            const pdfFileName = `${activeData.nomeUsuario.replace(/\s+/g, '_')}_${codigo}.pdf`;
+            const pdfBlob = doc.output('blob');
+            activeData.pdfDataUri = URL.createObjectURL(pdfBlob);
+            activeData.pdfFileName = pdfFileName;
+            
             document.getElementById('btnEnviarWhatsApp').disabled = false;
-            
-            // Salva o PDF no navegador
-            doc.save(activeData.pdfFileName);
-
+            doc.save(pdfFileName);
+            alert("PDF gerado com sucesso!");
         }
 
-        // --- Enviar via WhatsApp ---
-        function enviarWhatsApp() {
-            const activeData = getActiveData();
-
-            if (!activeData.pdfDataUri) {
-                alert("Por favor, gere o PDF primeiro.");
+        function limparFormulario() {
+            if (!confirm("Tem certeza que deseja limpar o formulário?")) {
                 return;
             }
 
-            const fileName = activeData.pdfFileName;
-            const fileData = activeData.pdfDataUri.split(',')[1];
+            const activeData = getActiveData();
+            const tabContext = activeTab;
             
-            // Esta funcionalidade requer uma implementação mais robusta de compartilhamento de arquivos
-            // via web, que pode não funcionar em todos os navegadores.
-            // Para web, uma abordagem melhor seria um backend para enviar o arquivo.
-            // Para apps nativos, a funcionalidade é mais simples.
-            // Aqui, apenas tentamos um link genérico, que pode não funcionar.
+            const formInputs = document.querySelectorAll(`#${tabContext} input, #${tabContext} select, #${tabContext} textarea`);
+            formInputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                } else if (input.type === 'select-one') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+                input.disabled = false;
+            });
             
-            alert("A funcionalidade de envio via WhatsApp não é suportada diretamente em todos os navegadores para arquivos. Salve o arquivo PDF e anexe-o manualmente na conversa.");
+            // Limpa as fotos e o contador
+            activeData.fotos = [];
+            activeData.coordenadas = "";
+            activeData.enderecoBaseDetalhes = {};
+            activeData.agenteDadosPreenchidos = false;
+            activeData.pdfDataUri = null;
+            activeData.pdfFileName = "";
+            
+            getElementByIdForActiveTab('fotosPreview').innerHTML = '';
+            getElementByIdForActiveTab('gps').innerText = '';
+            getElementByIdForActiveTab('contador').innerText = '0 / 5000';
+            
+            if (tabContext === 'tecnico') {
+                getElementByIdForActiveTab('contadorRelatorioEncaminhamento').innerText = '0 / 5000';
+            }
 
-            // A próxima linha é um exemplo de como poderia ser feito em um ambiente com suporte.
-            // window.open(`whatsapp://send?text=Segue o relatório em anexo: ${fileName}`);
+            document.getElementById('outrosDemandaContainer').style.display = 'none';
+            if (tabContext === 'tecnico') {
+                document.getElementById('outrosDemandaContainerTecnico').style.display = 'none';
+            }
+            
+            document.getElementById('btnEnviarWhatsApp').disabled = true;
+
+            // Gera um novo código para o próximo atendimento
+            activeData.codigoAtual = "";
+            gerarCodigoAtendimento();
+        }
+
+        function atualizarContador(campo = 'historico') {
+            const activeData = getActiveData();
+            const textarea = campo === 'historico' ? getElementByIdForActiveTab('historico') : getElementByIdForActiveTab('relatorioEncaminhamento', false);
+            const contadorDiv = campo === 'historico' ? getElementByIdForActiveTab('contador') : getElementByIdForActiveTab('contadorRelatorioEncaminhamento');
+            const maxLength = textarea.getAttribute('maxlength');
+            contadorDiv.innerText = `${textarea.value.length} / ${maxLength}`;
         }
         
-        function limparFormulario() {
-            if (confirm("Tem certeza que deseja limpar todo o formulário?")) {
-                const activeData = getActiveData();
-                const activeDataPrefix = activeTab === 'agenteCampo' ? '' : '_tecnico';
+        function atualizarEnderecoCompleto(tabContext = 'agente') {
+            const endereco = tabContext === 'agente' ? getElementByIdForActiveTab('endereco') : getElementByIdForActiveTab('endereco', false);
+            const numero = tabContext === 'agente' ? getElementByIdForActiveTab('numero') : getElementByIdForActiveTab('numero', false);
+            const complemento = tabContext === 'agente' ? getElementByIdForActiveTab('complemento') : getElementByIdForActiveTab('complemento', false);
+            
+            let enderecoCompleto = '';
+            if (endereco.value) {
+                enderecoCompleto += endereco.value;
+            }
+            if (numero.value) {
+                enderecoCompleto += `, ${numero.value}`;
+            }
+            if (complemento.value) {
+                enderecoCompleto += `, ${complemento.value}`;
+            }
+            
+            // Não é necessário atualizar o valor do input de endereço, pois ele é somente leitura.
+            // O valor completo será usado na geração do PDF.
+        }
 
-                // Limpar campos de texto e textareas
-                document.querySelectorAll(`#${activeTab} input[type="text"], #${activeTab} input[type="tel"], #${activeTab} textarea`).forEach(input => {
-                    input.value = '';
-                    input.style.border = '1px solid var(--border-color)';
-                    input.disabled = false;
-                });
-                // Limpar select
-                document.querySelectorAll(`#${activeTab} select`).forEach(select => {
-                    select.selectedIndex = 0;
-                });
-                // Limpar checkboxes
-                document.querySelectorAll(`#${activeTab} input[type="checkbox"]`).forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-                // Esconder campos condicionais
-                getElementByIdForActiveTab('outrosDemandaContainer', activeDataPrefix !== '').style.display = 'none';
+        function enviarWhatsApp() {
+            const activeData = getActiveData();
+            if (!activeData.pdfDataUri) {
+                alert("Nenhum PDF foi gerado. Por favor, gere o PDF primeiro.");
+                return;
+            }
+            
+            const numeroTel = activeTab === 'agenteCampo' ? getElementByIdForActiveTab('telefoneAgente').value : getElementByIdForActiveTab('telefoneTecnico', false).value;
+            const nomeAgente = activeTab === 'agenteCampo' ? getElementByIdForActiveTab('nomeAgente').value : getElementByIdForActiveTab('nomeTecnico', false).value;
+            const nomeUsuario = activeTab === 'agenteCampo' ? getElementByIdForActiveTab('nome').value : getElementByIdForActiveTab('nome', false).value;
+            
+            if (!numeroTel) {
+                alert("Por favor, preencha o telefone do agente responsável para enviar o relatório.");
+                return;
+            }
+            
+            // Simula o download do PDF para o usuário
+            const link = document.createElement('a');
+            link.href = activeData.pdfDataUri;
+            link.download = activeData.pdfFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
 
-                // Limpar dados na memória
-                activeData.fotos = [];
-                activeData.coordenadas = "";
-                activeData.pdfDataUri = null;
-                activeData.agenteDadosPreenchidos = false;
+            // Mensagem de texto para o WhatsApp
+            const mensagem = `Olá, ${nomeAgente}! O relatório de atendimento para o usuário ${nomeUsuario} foi gerado e salvo.`;
+            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${numeroTel}&text=${encodeURIComponent(mensagem)}`;
+            
+            window.open(urlWhatsApp, '_blank');
+        }
 
-                // Limpar previews
-                getElementByIdForActiveTab('fotosPreview').innerHTML = '';
-                getElementByIdForActiveTab('gps').innerText = '';
+        function checkDemandasTecnico() {
+            const demandasTecnicoCheckboxes = document.querySelectorAll('input[name="demandas_tecnico"]');
+            const relatorioEncaminhamentoTextarea = document.getElementById('relatorioEncaminhamento_tecnico');
+            let demandaEncaminhamentoMarcada = false;
 
-                // Resetar contadores
-                atualizarContador('historico');
-                if (activeTab === 'tecnico') {
-                     atualizarContador('relatorioEncaminhamento');
-                     checkDemandasTecnico(); // Para remover a classe de campo obrigatório visual
+            demandasTecnicoCheckboxes.forEach(checkbox => {
+                if (checkbox.id === 'demandaEncaminhamento_tecnico' && checkbox.checked) {
+                    demandaEncaminhamentoMarcada = true;
                 }
+            });
 
-                // Parar a câmera se estiver ativa
-                pararCamera('global');
+            if (demandaEncaminhamentoMarcada) {
+                relatorioEncaminhamentoTextarea.style.display = 'block';
+                document.getElementById('contadorRelatorioEncaminhamento').style.display = 'block';
+            } else {
+                relatorioEncaminhamentoTextarea.style.display = 'none';
+                document.getElementById('contadorRelatorioEncaminhamento').style.display = 'none';
+            }
+        }
 
-                // Recriar código de atendimento
-                gerarCodigoAtendimento();
+        function showLoginForm() {
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+            resetPasswordForm.style.display = 'none';
+            authMessage.textContent = ''; // Limpa mensagens de erro
+        }
 
-                // Desabilitar o botão do WhatsApp
-                document.getElementById('btnEnviarWhatsApp').disabled = true;
-                
-                alert("Formulário limpo com sucesso!");
+        function showRegisterForm() {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+            resetPasswordForm.style.display = 'none';
+            authMessage.textContent = '';
+        }
+
+        function showResetPassword() {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'none';
+            resetPasswordForm.style.display = 'block';
+            authMessage.textContent = '';
+        }
+
+        // Função de Registro
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                authMessage.textContent = 'As senhas não coincidem!';
+                return;
+            }
+            if (password.length < 6) {
+                authMessage.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                return;
+            }
+
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                authMessage.textContent = 'Conta criada com sucesso! Você está logado.';
+            } catch (error) {
+                console.error("Erro no registro:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    authMessage.textContent = 'Este e-mail já está em uso.';
+                } else if (error.code === 'auth/invalid-email') {
+                    authMessage.textContent = 'E-mail inválido.';
+                } else {
+                    authMessage.textContent = 'Erro ao registrar: ' + error.message;
+                }
+            }
+        });
+
+        // Função de Login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                authMessage.textContent = 'Login realizado com sucesso!';
+            } catch (error) {
+                console.error("Erro no login:", error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    authMessage.textContent = 'E-mail ou senha incorretos.';
+                } else if (error.code === 'auth/invalid-email') {
+                    authMessage.textContent = 'E-mail inválido.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    authMessage.textContent = 'Muitas tentativas de login. Tente novamente mais tarde.';
+                }
+                else {
+                    authMessage.textContent = 'Erro ao fazer login: ' + error.message;
+                }
+            }
+        });
+
+        // Função de Redefinição de Senha
+        document.getElementById('resetPasswordBtn').addEventListener('click', async () => {
+            const email = document.getElementById('resetEmail').value;
+            try {
+                await auth.sendPasswordResetEmail(email);
+                authMessage.textContent = 'Link de redefinição de senha enviado para seu e-mail.';
+                showLoginForm(); // Volta para a tela de login
+            } catch (error) {
+                console.error("Erro ao redefinir senha:", error);
+                if (error.code === 'auth/user-not-found') {
+                    authMessage.textContent = 'Não há usuário com este e-mail.';
+                } else if (error.code === 'auth/invalid-email') {
+                    authMessage.textContent = 'E-mail inválido.';
+                } else {
+                    authMessage.textContent = 'Erro ao redefinir senha: ' + error.message;
+                }
+            }
+        });
+
+        // Função de Logout (Adicione um botão de logout em algum lugar no seu mainAppContent, ex: na taskbar)
+        async function logout() {
+            try {
+                await auth.signOut();
+                console.log("Usuário deslogado.");
+            } catch (error) {
+                console.error("Erro ao fazer logout:", error);
+                alert("Ocorreu um erro ao sair. Por favor, tente novamente.");
             }
         }
     </script>
